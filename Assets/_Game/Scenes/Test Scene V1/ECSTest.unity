@@ -428,50 +428,6 @@ MonoBehaviour:
   numPointsPerAxis: 40
   boundsSize: 1
   terrainMaterial: TerrainMaterial
---- !u!1 &1526103856
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1526103858}
-  - component: {fileID: 1526103857}
-  m_Layer: 0
-  m_Name: UserInput
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1526103857
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1526103856}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d92f0d7ea1e2ad44094e8ec16f1fa98c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!4 &1526103858
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1526103856}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1951577320
 GameObject:
   m_ObjectHideFlags: 0
@@ -569,7 +525,6 @@ GameObject:
   - component: {fileID: 2016866239}
   - component: {fileID: 2016866240}
   - component: {fileID: 2016866243}
-  - component: {fileID: 2016866244}
   - component: {fileID: 2016866245}
   - component: {fileID: 2016866241}
   - component: {fileID: 2016866242}
@@ -679,18 +634,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   weight: 0
---- !u!114 &2016866244
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2016866238}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17cbaafda52743340b9d78bed551b736, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &2016866245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -707,7 +650,6 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1526103858}
   - {fileID: 946010346}
   - {fileID: 2016866239}
   - {fileID: 219785480}

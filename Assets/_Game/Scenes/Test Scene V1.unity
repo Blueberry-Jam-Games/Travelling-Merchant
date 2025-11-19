@@ -131,7 +131,6 @@ GameObject:
   - component: {fileID: 1729664266}
   - component: {fileID: 1729664265}
   - component: {fileID: 1729664268}
-  - component: {fileID: 1729664269}
   - component: {fileID: 1729664270}
   - component: {fileID: 1729664271}
   m_Layer: 0
@@ -354,18 +353,6 @@ MonoBehaviour:
       enableFptlForForwardOpaque: 0
       enableBigTilePrepass: 0
       isFptlEnabled: 0
---- !u!114 &1729664269
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1729664264}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 68a5623d404f98a4d8f419b4391c56f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1729664270
 MonoBehaviour:
   m_ObjectHideFlags: 0
