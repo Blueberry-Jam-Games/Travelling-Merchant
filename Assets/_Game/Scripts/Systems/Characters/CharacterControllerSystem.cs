@@ -1,17 +1,47 @@
-using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.SocialPlatforms;
 
 [UpdateBefore(typeof(SimulationSystemGroup))]
-partial struct CharacterControllerSystem : ISystem
+partial class CharacterControllerSystem : SystemBase
 {
-    [BurstCompile]
-    public void OnUpdate(ref SystemState state)
+    private InputAction interactAction;
+    private InputAction lookAction;
+    private InputAction moveAction;
+
+    private InputAction rotateLeftAction;
+    private InputAction rotateRightAction;
+
+    private EntityManager entityManager;
+    private EntityQuery inputQuery;
+
+    private bool interactFlag = false;
+    private bool rotateLeftFlag = false;
+    private bool rotateRightFlag = false;
+
+    protected override void OnCreate()
+    {
+        base.OnCreate();
+
+        var actions = InputSystem.actions;
+        if (actions == null) { Debug.LogError("InputSystem.actions is null"); return; }
+
+        interactAction = actions.FindAction("Player/Interact", true);
+        lookAction = actions.FindAction("Player/Look", true);
+        moveAction = actions.FindAction("Player/Move", true);
+
+        rotateLeftAction = actions.FindAction("Player/RotateLeft", true);
+        rotateRightAction = actions.FindAction("Player/RotateRight", true);
+
+        if (interactAction != null) interactAction.performed += OnInteraction;
+        if (rotateLeftAction != null) rotateLeftAction.performed += OnRotateLeft;
+        if (rotateRightAction != null) rotateRightAction.performed += OnRotateRight;
+    }
+
+    protected override void OnUpdate()
     {
         //Transform lookup used to pull components off of an entity
         ComponentLookup<LocalTransform> transformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true);
@@ -25,24 +55,20 @@ partial struct CharacterControllerSystem : ISystem
         foreach ((
             RefRW<CharacterController> characterController,
             RefRO<LocalTransform> localTransform,
-            RefRO<LocalInput> localInput,
             RefRW<PhysicsVelocity> physicsVelocity
             )
             in SystemAPI.Query<
             RefRW<CharacterController>,
             RefRO<LocalTransform>,
-            RefRO<LocalInput>,
             RefRW<PhysicsVelocity>
         >())
         {
-            // Section:
-            // Data Gathering
-            // Notes: New structs are created within the for loop as seperate variables will be needed when the system is transitioned to jobs.
-            // Gathers copies of all structs to reduce read write calls reducing overhead for when transitioned to jobs.
-
             CharacterController tempCharacterController = characterController.ValueRO;
-            LocalInput tempLocalInput = localInput.ValueRO;
+            // LocalInput tempLocalInput = localInput.ValueRO;
             LocalTransform tempLocalTransform = localTransform.ValueRO;
+
+            Vector2 mouseDelta = lookAction.ReadValue<Vector2>();
+            Vector2 moveDelta = moveAction.ReadValue<Vector2>();
 
             // Section:
             // Movement Code
@@ -52,9 +78,9 @@ partial struct CharacterControllerSystem : ISystem
 
             tempCharacterController.headPosition = tempCharacterController.cameraOffset + tempLocalTransform.Position;
 
-            float2 headRotationDelta = tempLocalInput.mouseDelta;
+            float2 headRotationDelta = mouseDelta;
 
-            float2 inputMoveDirection = tempLocalInput.moveDirection;
+            float2 inputMoveDirection = moveDelta;
 
             float scaleFactor = 0.5f; // TODO Link to Mouse Sensativity
 
@@ -104,23 +130,25 @@ partial struct CharacterControllerSystem : ISystem
 
         foreach ((
             RefRW<CharacterController> characterController,
-            RefRO<LocalInput> localInput,
             RefRW<ItemControl> itemControl,
             Entity caster
             )
             in SystemAPI.Query<
             RefRW<CharacterController>,
-            RefRO<LocalInput>,
             RefRW<ItemControl>
         >().WithEntityAccess())
         {
             CharacterController tempCharacterController = characterController.ValueRO;
-            LocalInput tempLocalInput = localInput.ValueRO;
+            //LocalInput tempLocalInput = localInput.ValueRO;
             ItemControl tempItemControl = itemControl.ValueRO;
+
+            bool interact = interactFlag;
+            bool rotateLeft = rotateLeftFlag;
+            bool rotateRight = rotateRightFlag;
 
             // ----------------------------------------------------------------------------------------------------------------------------------------------------------
             // Item Interaction
-            if (tempLocalInput.interact && tempItemControl.heldItem == Entity.Null)
+            if (interact && tempItemControl.heldItem == Entity.Null)
             {
                 UnityEngine.Ray playerRay = new UnityEngine.Ray(tempCharacterController.headPosition, tempCharacterController.cameraVector);
 
@@ -164,7 +192,7 @@ partial struct CharacterControllerSystem : ISystem
                     }
                 }
             }
-            else if (localInput.ValueRO.interact && tempItemControl.heldItem != Entity.Null)
+            else if (interact && tempItemControl.heldItem != Entity.Null)
             {
                 HoldableData holdableData = holdableDataLookup[tempItemControl.heldItem];
                 holdableData.ControlingEntity = Entity.Null;
@@ -177,11 +205,11 @@ partial struct CharacterControllerSystem : ISystem
 
             tempItemControl.controllerRotation = new float3(0, tempCharacterController.cameraRotation.x, 0);
 
-            if (tempLocalInput.rotateLeft)
+            if (rotateLeft)
             {
                 tempItemControl.itemRotationOffset += new float3(0, -45, 0);
             }
-            if (tempLocalInput.rotateRight)
+            if (rotateRight)
             {
                 tempItemControl.itemRotationOffset += new float3(0, 45, 0);
             }
@@ -189,5 +217,20 @@ partial struct CharacterControllerSystem : ISystem
             itemControl.ValueRW = tempItemControl;
             characterController.ValueRW = tempCharacterController;
         }
+    }
+
+    private void OnInteraction(InputAction.CallbackContext ctx)
+    {
+        interactFlag = true;
+    }
+
+    private void OnRotateRight(InputAction.CallbackContext ctx)
+    {
+        rotateRightFlag = true;
+    }
+
+    private void OnRotateLeft(InputAction.CallbackContext ctx)
+    {
+        rotateLeftFlag = true;
     }
 }
