@@ -5,7 +5,6 @@ using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[UpdateBefore(typeof(SimulationSystemGroup))]
 partial class CharacterControllerSystem : SystemBase
 {
     private InputAction interactAction;
@@ -25,7 +24,7 @@ partial class CharacterControllerSystem : SystemBase
     protected override void OnCreate()
     {
         base.OnCreate();
-
+    
         var actions = InputSystem.actions;
         if (actions == null) { Debug.LogError("InputSystem.actions is null"); return; }
 
@@ -217,6 +216,10 @@ partial class CharacterControllerSystem : SystemBase
             itemControl.ValueRW = tempItemControl;
             characterController.ValueRW = tempCharacterController;
         }
+
+        interactFlag = false;
+        rotateLeftFlag = false;
+        rotateRightFlag = false;
     }
 
     private void OnInteraction(InputAction.CallbackContext ctx)

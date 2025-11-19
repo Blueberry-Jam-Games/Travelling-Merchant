@@ -23,7 +23,7 @@ class HoldableDataAuthoringBaker : Baker<HoldableDataAuthoring>
         });
         AddComponent<PhysicsGravityFactor>(entity, new PhysicsGravityFactor
         {
-            Value = 1
+            Value = 0
         });
     }
 }
