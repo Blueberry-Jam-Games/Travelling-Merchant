@@ -20,20 +20,20 @@ public class NoiseDensity : DensityGenerator {
 
     public Vector4 shaderParams;
 
-    public override ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 centre, Vector3 offset, float spacing) {
+    public override ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 centre, Vector4 offset, float spacing) {
         shaderParams = new Vector4(1, 0, 0, 0);
         int densityKernal = densityShader.FindKernel("Density");
         buffersToRelease = new List<ComputeBuffer> ();
 
         // Noise parameters
         var prng = new System.Random (seed);
-        var offsets = new Vector3[numOctaves];
+        var offsets = new Vector4[numOctaves];
         float offsetRange = 1000;
         for (int i = 0; i < numOctaves; i++) {
-            offsets[i] = new Vector3 ((float) prng.NextDouble () * 2 - 1, (float) prng.NextDouble () * 2 - 1, (float) prng.NextDouble () * 2 - 1) * offsetRange;
+            offsets[i] = new Vector4 ((float) prng.NextDouble () * 2 - 1, (float) prng.NextDouble () * 2 - 1, (float) prng.NextDouble () * 2 - 1) * offsetRange;
         }
 
-        var offsetsBuffer = new ComputeBuffer (offsets.Length, sizeof (float) * 3);
+        var offsetsBuffer = new ComputeBuffer (offsets.Length, sizeof (float) * 4);
         offsetsBuffer.SetData (offsets);
         buffersToRelease.Add (offsetsBuffer);
 
@@ -43,14 +43,14 @@ public class NoiseDensity : DensityGenerator {
         densityShader.SetFloat ("persistence", persistence);
         densityShader.SetFloat ("noiseScale", noiseScale);
         densityShader.SetFloat ("noiseWeight", noiseWeight);
-        densityShader.SetBool ("closeEdges", closeEdges);
+        densityShader.SetInt ("closeEdges", closeEdges ? 1 : 0);
         densityShader.SetBuffer (densityKernal, "offsets", offsetsBuffer);
         densityShader.SetFloat ("floorOffset", floorOffset);
         densityShader.SetFloat ("weightMultiplier", weightMultiplier);
         densityShader.SetFloat ("hardFloor", hardFloorHeight);
         densityShader.SetFloat ("hardFloorWeight", hardFloorWeight);
 
-        densityShader.SetVector("params", shaderParams);
+        densityShader.SetVector("densityParams", shaderParams);
 
         return base.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, spacing);
     }

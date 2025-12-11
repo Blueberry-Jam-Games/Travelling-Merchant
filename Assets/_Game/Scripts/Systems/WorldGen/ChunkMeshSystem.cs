@@ -73,7 +73,7 @@ partial class ChunkMeshSystem : SystemBase
             Chunk localChunk = chunk.ValueRO;
             int numPointsPerAxis = chunkWorld.numPointsPerAxis;
             int boundsSize = chunkWorld.chunkSize;
-            Vector3 offset = Vector3.zero;
+            Vector4 offset = Vector3.zero;
 
             // Imported
             int numVoxelsPerAxis = numPointsPerAxis - 1;
@@ -85,13 +85,15 @@ partial class ChunkMeshSystem : SystemBase
 
             densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
 
+            int marchKernel = shader.FindKernel("March");
+
             triangleBuffer.SetCounterValue(0);
-            shader.SetBuffer(0, "points", pointsBuffer);
-            shader.SetBuffer(0, "triangles", triangleBuffer);
+            shader.SetBuffer(marchKernel, "points", pointsBuffer);
+            shader.SetBuffer(marchKernel, "triangles", triangleBuffer);
             shader.SetInt("numPointsPerAxis", numPointsPerAxis);
             shader.SetFloat("isoLevel", chunkWorld.isoLevel);
 
-            shader.Dispatch(shader.FindKernel("March"), numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+            shader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
             // Get number of triangles in the triangle buffer
             ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
@@ -162,9 +164,9 @@ partial class ChunkMeshSystem : SystemBase
     struct Triangle
     {
 #pragma warning disable 649 // disable unassigned variable warning
-        public Vector3 a;
-        public Vector3 b;
-        public Vector3 c;
+        public Vector4 a;
+        public Vector4 b;
+        public Vector4 c;
 
         public Vector3 this[int i]
         {
@@ -190,7 +192,7 @@ partial class ChunkMeshSystem : SystemBase
         int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
         int maxTriangleCount = numVoxels * 5;
 
-        triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 3 * 3, ComputeBufferType.Append);
+        triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 4 * 3, ComputeBufferType.Append);
         pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
         triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
     }

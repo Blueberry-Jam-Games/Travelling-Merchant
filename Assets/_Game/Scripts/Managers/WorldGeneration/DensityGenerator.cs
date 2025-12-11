@@ -9,7 +9,7 @@ public abstract class DensityGenerator {
 
     protected List<ComputeBuffer> buffersToRelease;
 
-    public virtual ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 centre, Vector3 offset, float spacing) {
+    public virtual ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 centre, Vector4 offset, float spacing) {
         int densityKernal = densityShader.FindKernel("Density");
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
         int numThreadsPerAxis = Mathf.CeilToInt (numPointsPerAxis / (float) threadGroupSize);

@@ -3,7 +3,7 @@
 #include "/Includes/Noise.compute"
 
 // Noise settings
-StructuredBuffer<float3> offsets;
+StructuredBuffer<float4> offsets;
 int octaves;
 float lacunarity;
 float persistence;
@@ -11,16 +11,14 @@ float noiseScale;
 float noiseWeight;
 float floorOffset;
 float weightMultiplier;
-bool closeEdges;
 float hardFloor;
 float hardFloorWeight;
 
-float4 params;
+float4 densityParams;
 
 [numthreads(numThreads,numThreads,numThreads)]
 void Density (int3 id : SV_DispatchThreadID)
 {
-    hardFloor = 1;
     if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
         return;
     }
@@ -34,7 +32,8 @@ void Density (int3 id : SV_DispatchThreadID)
     float amplitude = 5;
     float weight = 1;
     for (int j =0; j < octaves; j ++) {
-        float n = snoise((pos+offsetNoise) * frequency + offsets[j] + offset);
+        float3 offsetVec = offsets[j].xyz;
+        float n = snoise((pos+offsetNoise) * frequency + offsetVec + offset);
         float v = 1-abs(n);
         v = v*v;
         v *= weight;
@@ -44,7 +43,7 @@ void Density (int3 id : SV_DispatchThreadID)
         frequency *= lacunarity;
     }
     
-    float finalVal = -(pos.y + floorOffset) + noise * noiseWeight + (pos.y%params.x) * params.y;
+    float finalVal = -(pos.y + floorOffset) + noise * noiseWeight + fmod(pos.y, densityParams.x) * densityParams.y;
 
     if (pos.y < hardFloor) {
         finalVal += hardFloorWeight;
