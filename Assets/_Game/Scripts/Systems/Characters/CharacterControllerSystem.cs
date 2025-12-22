@@ -42,6 +42,10 @@ partial class CharacterControllerSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        // Enable - Disable
+        GameState gameState = SystemAPI.GetSingleton<GameState>();
+        if(!gameState.playerControlEnable) return;
+    
         //Transform lookup used to pull components off of an entity
         ComponentLookup<LocalTransform> transformLookup = SystemAPI.GetComponentLookup<LocalTransform>(true);
         ComponentLookup<PhysicsVelocity> physicsVelocityLookup = SystemAPI.GetComponentLookup<PhysicsVelocity>(false);

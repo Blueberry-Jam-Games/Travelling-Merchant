@@ -40,7 +40,6 @@ partial struct GravityEnable : ISystem
 
         if (chunkGeneratingCount == 0)
         {
-            Debug.Log("Count = 0");
             foreach (
             RefRW<PhysicsGravityFactor> gravity
             in SystemAPI.Query<
@@ -54,7 +53,7 @@ partial struct GravityEnable : ISystem
         }
         else
         {
-            Debug.Log("Count = " + chunkGeneratingCount);
+            
         }
     }
 }

@@ -1,8 +1,5 @@
-﻿#pragma kernel March
-#pragma target 5.1
+#pragma kernel March
 #include "/Includes/MarchTables.compute"
-
-static const int numThreads = 8;
 
 struct Triangle {
     float4 vertexC;
@@ -12,6 +9,7 @@ struct Triangle {
 
 AppendStructuredBuffer<Triangle> triangles;
 RWStructuredBuffer<float4> points;
+StructuredBuffer<int> cubeMarchArray;
 
 int numPointsPerAxis;
 float isoLevel;
@@ -25,9 +23,9 @@ int indexFromCoord(int x, int y, int z) {
     return z * numPointsPerAxis * numPointsPerAxis + y * numPointsPerAxis + x;
 }
 
-[numthreads(numThreads,numThreads,numThreads)]
-void March (int3 id : SV_DispatchThreadID)
-{   
+[numthreads(8, 8, 8)]
+void March (uint3 id : SV_DispatchThreadID)
+{
     // Stop one point before the end because voxel includes neighbouring points
     if (id.x >= numPointsPerAxis-1 || id.y >= numPointsPerAxis-1 || id.z >= numPointsPerAxis-1) {
         return;
@@ -59,25 +57,26 @@ void March (int3 id : SV_DispatchThreadID)
     if (cubeCorners[6].w < isoLevel) cubeIndex |= 64;
     if (cubeCorners[7].w < isoLevel) cubeIndex |= 128;
 
-    // Create triangles for current cube configuration
-    for (int i = 0; triangulation[cubeIndex][i] != -1; i +=3) {
+    int loopCount = cubeMarchArray[cubeIndex * 16 + 15];
+
+    //Create triangles for current cube configuration
+    for (int i = 0; i < loopCount; i +=3) {
         // Get indices of corner points A and B for each of the three edges
         // of the cube that need to be joined to form the triangle.
-        int a0 = cornerIndexAFromEdge[triangulation[cubeIndex][i]];
-        int b0 = cornerIndexBFromEdge[triangulation[cubeIndex][i]];
 
-        int a1 = cornerIndexAFromEdge[triangulation[cubeIndex][i+1]];
-        int b1 = cornerIndexBFromEdge[triangulation[cubeIndex][i+1]];
+        int a0 = cornerIndexAFromEdge[cubeMarchArray[cubeIndex * 16 + i]];
+        int b0 = cornerIndexBFromEdge[cubeMarchArray[cubeIndex * 16 + i]];
 
-        int a2 = cornerIndexAFromEdge[triangulation[cubeIndex][i+2]];
-        int b2 = cornerIndexBFromEdge[triangulation[cubeIndex][i+2]];
+        int a1 = cornerIndexAFromEdge[cubeMarchArray[cubeIndex * 16 + i+1]];
+        int b1 = cornerIndexBFromEdge[cubeMarchArray[cubeIndex * 16 + i+1]];
+
+        int a2 = cornerIndexAFromEdge[cubeMarchArray[cubeIndex * 16 + i+2]];
+        int b2 = cornerIndexBFromEdge[cubeMarchArray[cubeIndex * 16 + i+2]];
 
         Triangle tri;
         tri.vertexA = interpolateVerts(cubeCorners[a0], cubeCorners[b0]);
         tri.vertexB = interpolateVerts(cubeCorners[a1], cubeCorners[b1]);
         tri.vertexC = interpolateVerts(cubeCorners[a2], cubeCorners[b2]);
-        triangles.Append(tri);
+        triangles.Append (tri);
     }
-
-
 }

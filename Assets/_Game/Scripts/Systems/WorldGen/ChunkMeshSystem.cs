@@ -5,12 +5,9 @@ using Unity.Transforms;
 using Unity.Collections;
 using Unity.Rendering;
 using UnityEngine;
-using Unity.Entities.UniversalDelegates;
-using Unity.VisualScripting;
-using UnityEngine.UIElements;
-using UnityEngine.Assertions.Must;
-using System.Reflection;
 using Unity.Physics;
+using UnityEngine.Assertions.Must;
+using System.Linq;
 
 [UpdateInGroup(typeof(PresentationSystemGroup))]
 [BurstCompile(DisableDirectCall = true)]
@@ -24,6 +21,8 @@ partial class ChunkMeshSystem : SystemBase
     ComputeBuffer pointsBuffer;
     ComputeBuffer triCountBuffer;
 
+    ComputeBuffer cubeMarchArray;
+
     protected override void OnCreate()
     {
         shader = Resources.Load<ComputeShader>("ComputeShaders/MarchingCubes");
@@ -32,6 +31,12 @@ partial class ChunkMeshSystem : SystemBase
 
         if (shader == null) Debug.LogError("Missing shader");
         if (densityGenerator.densityShader == null) Debug.LogError("Missing Density Shader");
+
+        if(shader != null)
+        {
+            cubeMarchArray = new ComputeBuffer(4096, sizeof(int), ComputeBufferType.Structured);
+            cubeMarchArray.SetData(CubeMarchTriangulation.map);
+        }
     }
 
     protected override void OnStartRunning()
@@ -42,10 +47,11 @@ partial class ChunkMeshSystem : SystemBase
 
     protected override void OnUpdate()
     {
-        if (terrainMaterial == null)
-        {
-            return;
-        }
+        // Enable - Disable
+        GameState gameState = SystemAPI.GetSingleton<GameState>();
+        if(!gameState.chunkGenerationEnable) return;
+
+        if (terrainMaterial == null) return;
 
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
         Entity chunkWorldEntity = SystemAPI.GetSingletonEntity<ChunkWorldSingleton>();
@@ -87,11 +93,12 @@ partial class ChunkMeshSystem : SystemBase
 
             int marchKernel = shader.FindKernel("March");
 
-            triangleBuffer.SetCounterValue(0);
             shader.SetBuffer(marchKernel, "points", pointsBuffer);
             shader.SetBuffer(marchKernel, "triangles", triangleBuffer);
+            triangleBuffer.SetCounterValue(0);
             shader.SetInt("numPointsPerAxis", numPointsPerAxis);
             shader.SetFloat("isoLevel", chunkWorld.isoLevel);
+            shader.SetBuffer(marchKernel, "cubeMarchArray", cubeMarchArray);
 
             shader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
@@ -164,22 +171,22 @@ partial class ChunkMeshSystem : SystemBase
     struct Triangle
     {
 #pragma warning disable 649 // disable unassigned variable warning
-        public Vector4 a;
-        public Vector4 b;
-        public Vector4 c;
+        public float4 a;
+        public float4 b;
+        public float4 c;
 
-        public Vector3 this[int i]
+        public float3 this[int i]
         {
             get
             {
                 switch (i)
                 {
                     case 0:
-                        return a;
+                        return new float3(a.x, a.y, a.z);
                     case 1:
-                        return b;
+                        return new float3(b.x, b.y, b.z);
                     default:
-                        return c;
+                        return new float3(c.x, c.y, c.z);
                 }
             }
         }

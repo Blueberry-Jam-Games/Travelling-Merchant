@@ -21,7 +21,7 @@ partial struct ChunkSpawnerSystem : ISystem
                 typeof(Chunk),
                 typeof(ChunkSleeping),
                 typeof(ChunkRequestUpdate),
-                typeof(Unity.Physics.PhysicsCollider),
+                typeof(PhysicsCollider),
                 typeof(PhysicsWorldIndex)
         );
     }
