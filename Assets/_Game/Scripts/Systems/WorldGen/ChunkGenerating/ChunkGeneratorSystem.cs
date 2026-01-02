@@ -28,7 +28,7 @@ partial struct ChunkGeneratorSystem : ISystem
 
         EntityManager entityManager = state.EntityManager;
 
-        ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
+        ref ChunkWorldSingleton chunkWorld = ref SystemAPI.GetSingletonRW<ChunkWorldSingleton>().ValueRW;
         Entity player = SystemAPI.GetSingletonEntity<Player>();
         LocalTransform playerTransform = SystemAPI.GetComponent<LocalTransform>(player);
 
@@ -212,8 +212,6 @@ partial struct ChunkGeneratorSystem : ISystem
                     }
                 }
             }
-
-            SystemAPI.SetSingleton(chunkWorld);
         }
     }
 

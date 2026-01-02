@@ -24,9 +24,5 @@ public struct Chunk : IComponentData
     public int3 chunkPosition;
     public int meshIndex;
     public int materialIndex;
-}
-
-public struct ChunkCollider : IComponentData
-{
-    public BlobAssetReference<Unity.Physics.Collider> collider;
+    public float4 cornerHeightMap;
 }
