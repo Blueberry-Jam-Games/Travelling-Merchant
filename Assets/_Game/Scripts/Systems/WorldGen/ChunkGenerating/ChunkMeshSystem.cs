@@ -79,7 +79,7 @@ partial class ChunkMeshSystem : SystemBase
             Chunk localChunk = chunk.ValueRO;
             int numPointsPerAxis = chunkWorld.numPointsPerAxis;
             int boundsSize = chunkWorld.chunkSize;
-            Vector4 offset = Vector3.zero;
+            Vector4 offset = Vector4.zero;
 
             // Imported
             int numVoxelsPerAxis = numPointsPerAxis - 1;
@@ -127,6 +127,7 @@ partial class ChunkMeshSystem : SystemBase
             Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(localChunk.meshIndex);
             mesh.Clear();
 
+            // Move data into arrays. * 3 used for 3 verticies per face 
             var vertices = new Vector3[numTris * 3];
             var meshTriangles = new int[numTris * 3];
 
@@ -207,9 +208,12 @@ partial class ChunkMeshSystem : SystemBase
 
     protected override void OnDestroy()
     {
-        triangleBuffer.Dispose();
-        pointsBuffer.Dispose();
-        triCountBuffer.Dispose();
+        if(triangleBuffer.IsValid())
+        {
+            triangleBuffer.Dispose();
+            pointsBuffer.Dispose();
+            triCountBuffer.Dispose();
+        }
         base.OnDestroy();
     }
 }

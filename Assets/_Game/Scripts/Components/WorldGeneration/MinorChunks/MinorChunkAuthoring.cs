@@ -2,14 +2,14 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-class ChunkAuthoring : MonoBehaviour
+class MinorChunkAuthoring : MonoBehaviour
 {
     
 }
 
-class ChunkAuthoringBaker : Baker<ChunkAuthoring>
+class MinorChunkAuthoringBaker : Baker<MinorChunkAuthoring>
 {
-    public override void Bake(ChunkAuthoring authoring)
+    public override void Bake(MinorChunkAuthoring authoring)
     {
         var entity = GetEntity(TransformUsageFlags.None);
         AddComponent<Chunk>(entity, new Chunk

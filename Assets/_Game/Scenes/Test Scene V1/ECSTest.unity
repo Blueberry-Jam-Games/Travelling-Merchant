@@ -773,11 +773,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82356945e808078478a2a0f3474d5c2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  renderDistance: 3
-  chunkSpawnRadius: 10
-  chunkCubeSize: 20
+  renderDistance: 6
+  chunkCubeSize: 32
+  MinorPerMajorChunk: 16
   isoLevel: 0
-  numPointsPerAxis: 40
+  numPointsPerAxis: 32
   boundsSize: 1
   terrainMaterial: TerrainMaterial
 --- !u!114 &1302606291
@@ -912,7 +912,7 @@ Transform:
   m_GameObject: {fileID: 2016866238}
   serializedVersion: 2
   m_LocalRotation: {x: 1.3483556e-13, y: 0.4572531, z: -7.1966115e-14, w: 0.88933665}
-  m_LocalPosition: {x: 1.45, y: 20.01, z: -2.02}
+  m_LocalPosition: {x: -683, y: 50, z: -131}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
