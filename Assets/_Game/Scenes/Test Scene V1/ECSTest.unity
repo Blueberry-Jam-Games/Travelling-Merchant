@@ -775,7 +775,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   renderDistance: 6
   chunkCubeSize: 32
-  MinorPerMajorChunk: 16
+  MinorPerMajorChunk: 24
   isoLevel: 0
   numPointsPerAxis: 32
   boundsSize: 1

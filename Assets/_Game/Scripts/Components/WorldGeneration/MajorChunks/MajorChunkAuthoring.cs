@@ -59,6 +59,6 @@ public struct MajorChunk : IComponentData
             throw new System.IndexOutOfRangeException(
                 $"Heightmap access out of range: ({x}, {z})");
     #endif
-        return x * 25 + z;
+        return z * 25 + x;
     }
 }

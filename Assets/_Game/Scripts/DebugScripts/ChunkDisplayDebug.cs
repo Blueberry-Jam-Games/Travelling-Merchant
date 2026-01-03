@@ -129,7 +129,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                                 for(int y = 0; y < 25; y++)
                                 {
                                     Vector3 position = localTransform.Position;
-                                    position += new Vector3(x * chunkWorld.chunkSize, majorChunk.heightmap[y * 17 + x], y * chunkWorld.chunkSize);
+                                    position += new Vector3(x * chunkWorld.chunkSize, majorChunk.heightmap[y * 25 + x], y * chunkWorld.chunkSize);
 
                                     Gizmos.color = Color.crimson;
                                     Gizmos.DrawSphere(position, 1f);

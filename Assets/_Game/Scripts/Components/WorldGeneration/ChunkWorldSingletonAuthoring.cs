@@ -11,7 +11,7 @@ class ChunkWorldSingletonAuthoring : MonoBehaviour
     public int chunkCubeSize = 32;
     public int MinorPerMajorChunk = 24;
     public float isoLevel;
-    public int numPointsPerAxis = 30;
+    public int numPointsPerAxis = 32;
     public int boundsSize = 1;
     public string terrainMaterial;
 }
