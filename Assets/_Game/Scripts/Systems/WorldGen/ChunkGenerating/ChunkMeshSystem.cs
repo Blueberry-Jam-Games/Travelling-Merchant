@@ -2,12 +2,8 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using Unity.Collections;
-using Unity.Rendering;
 using UnityEngine;
 using Unity.Physics;
-using UnityEngine.Assertions.Must;
-using System.Linq;
 
 [UpdateInGroup(typeof(PresentationSystemGroup))]
 [BurstCompile(DisableDirectCall = true)]

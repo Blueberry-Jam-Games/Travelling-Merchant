@@ -1,0 +1,33 @@
+#pragma kernel Heightmap
+#include "/Includes/FastNoiseLite.hlsl"
+
+RWStructuredBuffer<float> HeightmapBuffer;
+
+int4 chunkPosition;
+int minorPerMajorChunks;
+float scale;
+float worldHeight;
+int seed;
+
+[numthreads(8,8,1)]
+void Heightmap(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= 25 || id.y >= 25)
+        return;
+
+    // Create and configure noise state
+    fnl_state noise = fnlCreateState(seed);
+    noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
+
+    uint index = id.y * 25 + id.x;
+
+    float2 chunkBase = (float2)chunkPosition.xy * (float)minorPerMajorChunks;
+
+    float2 pos = ((float2)id.xy + chunkBase) * scale;
+
+    float noiseResult = fnlGetNoise2D(noise, pos.x, pos.y);
+    float h = noiseResult * 0.5 + 0.5;
+    float height = h * worldHeight;
+
+    HeightmapBuffer[index] = height;
+}

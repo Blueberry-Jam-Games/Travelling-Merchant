@@ -112,6 +112,11 @@ float snoise(float3 v)
     return 42.0 * dot(m, px);
 }
 
+float snoise2d(float2 input, float vertical)
+{
+    return snoise(float3(input.x, vertical, input.y));
+}
+
 float4 snoise_grad(float3 v)
 {
     const float2 C = float2(1.0 / 6.0, 1.0 / 3.0);

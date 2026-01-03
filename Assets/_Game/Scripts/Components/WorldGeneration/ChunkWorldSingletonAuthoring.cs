@@ -9,7 +9,7 @@ class ChunkWorldSingletonAuthoring : MonoBehaviour
 {
     public int renderDistance;
     public int chunkCubeSize = 32;
-    public int MinorPerMajorChunk = 16;
+    public int MinorPerMajorChunk = 24;
     public float isoLevel;
     public int numPointsPerAxis = 30;
     public int boundsSize = 1;
@@ -23,7 +23,7 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
         int calculatedChunkCount = (int)math.pow(authoring.renderDistance * 2 + 1, 3) + (int)math.pow(authoring.renderDistance * 2 + 1, 2) * 4; // Revise Later
 
         const int majorChunkPadding = 3; // Passing multiple for chunks. Keep at 3
-        int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / 16f) * majorChunkPadding + 1) * 2; // *2 is temp
+        int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) * majorChunkPadding + 1);
 
         var entity = GetEntity(TransformUsageFlags.None);
         AddComponent(entity, new ChunkWorldSingleton

@@ -1,6 +1,6 @@
 ﻿#pragma kernel Density
 #include "/Includes/Density.compute"
-#include "/Includes/Noise.compute"
+#include "/Includes/Noise.hlsl"
 
 // Noise settings
 StructuredBuffer<float4> offsets;

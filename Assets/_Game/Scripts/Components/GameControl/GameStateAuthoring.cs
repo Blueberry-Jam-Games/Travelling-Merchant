@@ -15,7 +15,10 @@ class GameStateManagerBaker : Baker<GameStateAuthoring>
         AddComponent<GameState>(entity, new GameState
         {
             chunkGenerationEnable = false,
-            playerControlEnable = false
+            playerControlEnable = false,
+            DEBUG_ChunkOutline = true,
+            DEBUG_MajorChunkOutline = true,
+            DEBUG_Heightmap = false
         });
     }
 }
@@ -24,4 +27,7 @@ public struct GameState : IComponentData
 {
     public bool chunkGenerationEnable;
     public bool playerControlEnable;
+    public bool DEBUG_ChunkOutline;
+    public bool DEBUG_MajorChunkOutline;
+    public bool DEBUG_Heightmap;
 }

@@ -24,7 +24,7 @@ public struct MajorChunk : IComponentData
 {
     public int2 chunkPosition;
     public int generationStep; // Current step of generation. -1 == released, 2 <= in generation or in use. 
-    FixedList4096Bytes<float> heightmap; // Stores rough vertex heights for minor chunks and structure generation.
+    public FixedList4096Bytes<float> heightmap; // Stores rough vertex heights for minor chunks and structure generation.
 
     // TODO change 17 to be MinorPerMajorChunk + 1.
     public float this[int x, int z]
@@ -55,10 +55,10 @@ public struct MajorChunk : IComponentData
             throw new System.IndexOutOfRangeException(
                     $"Heightmap access out of range (negative): ({x}, {z})");
 
-        if ((uint)x >= 17 || (uint)z >= 17)
+        if ((uint)x >= 25 || (uint)z >= 25)
             throw new System.IndexOutOfRangeException(
                 $"Heightmap access out of range: ({x}, {z})");
     #endif
-        return x * 17 + z;
+        return x * 25 + z;
     }
 }

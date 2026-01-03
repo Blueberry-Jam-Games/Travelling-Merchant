@@ -1,5 +1,34 @@
 #pragma kernel March
-#include "/Includes/MarchTables.compute"
+
+static const int cornerIndexAFromEdge[12] = {
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    0,
+    1,
+    2,
+    3
+};
+
+static const int cornerIndexBFromEdge[12] = {
+    1,
+    2,
+    3,
+    0,
+    5,
+    6,
+    7,
+    4,
+    4,
+    5,
+    6,
+    7
+};
 
 struct Triangle {
     float4 vertexC;
@@ -24,7 +53,7 @@ int indexFromCoord(int x, int y, int z) {
 }
 
 [numthreads(8, 8, 8)]
-void March (uint3 id : SV_DispatchThreadID)
+void March (int3 id : SV_DispatchThreadID)
 {
     // Stop one point before the end because voxel includes neighbouring points
     if (id.x >= numPointsPerAxis-1 || id.y >= numPointsPerAxis-1 || id.z >= numPointsPerAxis-1) {

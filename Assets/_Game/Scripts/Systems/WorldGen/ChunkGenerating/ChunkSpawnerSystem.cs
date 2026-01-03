@@ -25,7 +25,9 @@ partial struct ChunkSpawnerSystem : ISystem
         majorChunkArchtype = state.EntityManager.CreateArchetype(
             typeof(LocalTransform),
             typeof(MajorChunk),
-            typeof(ChunkSleeping)
+            typeof(ChunkSleeping),
+            typeof(ChunkRequestUpdate),
+            typeof(MajorChunkReady)
         );
     }
 
@@ -54,6 +56,9 @@ partial struct ChunkSpawnerSystem : ISystem
                     generationStep = -1
                 });
                 entityManager.SetName(currentEntity, "MajorChunk " + chunkWorld.MajorChunkCurrentCount);
+                entityManager.SetComponentEnabled<ChunkSleeping>(currentEntity, true);
+                entityManager.SetComponentEnabled<ChunkRequestUpdate>(currentEntity, false);
+                entityManager.SetComponentEnabled<MajorChunkReady>(currentEntity, false);
 
                 chunkWorld.MajorChunkCurrentCount++;
             }

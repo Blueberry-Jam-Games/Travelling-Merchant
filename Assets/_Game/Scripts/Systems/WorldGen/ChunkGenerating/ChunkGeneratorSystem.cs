@@ -59,6 +59,7 @@ partial struct ChunkGeneratorSystem : ISystem
                 if(chunkDistance > chunkWorld.majorChunkRenderDistance)
                 {
                     SystemAPI.SetComponentEnabled<ChunkSleeping>(entity, true);
+                    SystemAPI.SetComponentEnabled<MajorChunkReady>(entity, false);
                     sleepingReleasableMajorChunk.Add(new SleepingChunk { entity = entity, distSq = chunkDistance });
                 }
                 else if(chunkDistance == chunkWorld.majorChunkRenderDistance)
@@ -68,6 +69,7 @@ partial struct ChunkGeneratorSystem : ISystem
                 else if(majorChunk.ValueRO.generationStep == -1)
                 {
                     SystemAPI.SetComponentEnabled<ChunkSleeping>(entity, true);
+                    SystemAPI.SetComponentEnabled<MajorChunkReady>(entity, false);
                     sleepingReleasableMajorChunk.Add(new SleepingChunk { entity = entity, distSq = 10000 });
                 }
                 else
@@ -98,20 +100,28 @@ partial struct ChunkGeneratorSystem : ISystem
                         }
 
                         Entity outChunk = sleepingReleasableMajorChunk[sleepingMajorChunkFromArray].entity;
-                        int2 position = new int2(x, z);
+
                         MajorChunk chunk = SystemAPI.GetComponent<MajorChunk>(outChunk);
-                        int2 chunkOldPosition = chunk.chunkPosition;
                         LocalTransform transform = SystemAPI.GetComponent<LocalTransform>(outChunk);
+
+                        // Remove previous chunk
+                        majorChunkMap.Remove(chunk.chunkPosition);
+
+                        // Create new position data for the chunk
+                        int2 position = new int2(x, z);
                         chunk.chunkPosition = position;
-                        chunk.generationStep = 1;
+                        chunk.generationStep = 0;
+
                         int3 worldPos = new int3(position.x, 0, position.y);
                         worldPos *= chunkWorld.MajorChunkSize;
                         transform.Position = worldPos;
 
-                        majorChunkMap.Remove(chunkOldPosition);
+                        // Save data to chunk
                         majorChunkMap.Add(position, outChunk);
 
                         SystemAPI.SetComponentEnabled<ChunkSleeping>(outChunk, false);
+                        SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(outChunk, true);
+                        SystemAPI.SetComponentEnabled<MajorChunkReady>(outChunk, false);
 
                         SystemAPI.SetComponent(outChunk, chunk);
                         SystemAPI.SetComponent(outChunk, transform);
