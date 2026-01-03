@@ -54,8 +54,8 @@ public struct ChunkWorldSingleton : IComponentData
     public int currentChunkCount; // Actual number of minor chunk entities
     public int pooledMajorChunkCount; // Required amount of major chunk entities
     public int MajorChunkCurrentCount; // Actual number of major chunk entities
-    public int MajorChunkSize;
-    public int MinorPerMajorChunk; // Amount of minor chunks which make up a major chunk. Current default is 16. Change with caution. Major chunk lists may need to be increased in capacity.
+    public int MajorChunkSize; // Size of major chunk in Unity Units
+    public int MinorPerMajorChunk; // Size of major chunk in units of Minor Chunks. Current default is 16. Change with caution. Major chunk lists may need to be increased in capacity and heightmap struct must be changed manually.
     public int majorChunkRenderDistance; // Amount of major chunks to be generated away from the player. Stored in units of Major chunk. TODO Revise to account for LoD
 
     public float3 activeChunk;

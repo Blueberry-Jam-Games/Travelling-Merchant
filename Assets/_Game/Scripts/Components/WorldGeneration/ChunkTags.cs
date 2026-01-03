@@ -11,3 +11,13 @@ public struct ChunkRequestUpdate : IComponentData, IEnableableComponent
 {
     
 }
+
+public struct MajorChunkReady : IComponentData, IEnableableComponent
+{
+    
+}
+
+public struct RenderMinorChunk : IComponentData, IEnableableComponent
+{
+    
+}

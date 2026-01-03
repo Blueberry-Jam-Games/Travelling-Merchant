@@ -21,8 +21,8 @@ class MinorChunkAuthoringBaker : Baker<MinorChunkAuthoring>
 
 public struct Chunk : IComponentData
 {
+    public int2 majorChunkPosition;
     public int3 chunkPosition;
     public int meshIndex;
     public int materialIndex;
-    public float4 cornerHeightMap;
 }

@@ -61,7 +61,7 @@ partial struct ChunkGeneratorSystem : ISystem
                     SystemAPI.SetComponentEnabled<ChunkSleeping>(entity, true);
                     sleepingReleasableMajorChunk.Add(new SleepingChunk { entity = entity, distSq = chunkDistance });
                 }
-                else if(chunkDistance >= chunkWorld.majorChunkRenderDistance)
+                else if(chunkDistance == chunkWorld.majorChunkRenderDistance)
                 {
                     SystemAPI.SetComponentEnabled<ChunkSleeping>(entity, true);
                 }
@@ -86,6 +86,14 @@ partial struct ChunkGeneratorSystem : ISystem
                     {
                         if(sleepingReleasableMajorChunk.Length == 0 || sleepingReleasableMajorChunk.Length <= sleepingMajorChunkFromArray)
                         {
+                            if(sleepingReleasableMajorChunk.Length == 0)
+                            {
+                                Debug.Log("No chunks");
+                            }
+                            else
+                            {
+                                Debug.Log("Loaded to many chunks");
+                            }
                             continue;
                         }
 
@@ -95,6 +103,7 @@ partial struct ChunkGeneratorSystem : ISystem
                         int2 chunkOldPosition = chunk.chunkPosition;
                         LocalTransform transform = SystemAPI.GetComponent<LocalTransform>(outChunk);
                         chunk.chunkPosition = position;
+                        chunk.generationStep = 1;
                         int3 worldPos = new int3(position.x, 0, position.y);
                         worldPos *= chunkWorld.MajorChunkSize;
                         transform.Position = worldPos;
@@ -148,9 +157,8 @@ partial struct ChunkGeneratorSystem : ISystem
                 if (SystemAPI.IsComponentEnabled<ChunkSleeping>(entity))
                 {
                     float2 chunkXZ = chunk.ValueRO.chunkPosition.xz;
-                    float2 playerXZ = playerTransform.Position.xz;
 
-                    float distSq = math.distancesq(chunkXZ, playerXZ);
+                    float distSq = math.distancesq(chunkXZ, playerMinorChunk.xz);
 
                     sleepingChunks.Add(new SleepingChunk { entity = entity, distSq = distSq });
                 }
@@ -187,6 +195,7 @@ partial struct ChunkGeneratorSystem : ISystem
                             int3 chunkOldPosition = chunk.chunkPosition;
                             LocalTransform transform = SystemAPI.GetComponent<LocalTransform>(outChunk);
                             chunk.chunkPosition = position;
+                            chunk.majorChunkPosition = (int2) math.floor(position.xz / chunkWorld.chunkSize);
                             transform.Position = position * chunkWorld.chunkSize;
 
                             minorChunkMap.Remove(chunkOldPosition);
@@ -207,7 +216,6 @@ partial struct ChunkGeneratorSystem : ISystem
                             {
                                 SystemAPI.SetComponentEnabled<ChunkSleeping>(chunk, false);
                             }
-
                         }
                     }
                 }
@@ -218,11 +226,12 @@ partial struct ChunkGeneratorSystem : ISystem
     public void OnDestroy(ref SystemState state)
     {
         if (minorChunkMap.IsCreated) minorChunkMap.Dispose();
+        if (majorChunkMap.IsCreated) majorChunkMap.Dispose();
     }
 
     public int flatDistance(int2 start, int2 end)
     {
-        int2 result = start - end;
+        int2 result = math.abs(start) - math.abs(end);
         result = math.abs(result);
 
         if(result.x > result.y)
@@ -234,6 +243,17 @@ partial struct ChunkGeneratorSystem : ISystem
             return result.y;
         }
     }
+
+    // Sample function if needed for later. Will be used for external systems to gather heightmap data. Read only
+    public MajorChunk getMajorChunk(ref SystemState state, int2 position)
+    {
+        ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
+        position /= chunkWorld.MajorChunkSize;
+        ComponentLookup<MajorChunk> lookup = SystemAPI.GetComponentLookup<MajorChunk>();
+        majorChunkMap.TryGetValue(position, out Entity entity);
+        return lookup.GetRefRO(entity).ValueRO;
+    }
+
 }
 
 public struct SleepingChunk : System.IComparable<SleepingChunk>
