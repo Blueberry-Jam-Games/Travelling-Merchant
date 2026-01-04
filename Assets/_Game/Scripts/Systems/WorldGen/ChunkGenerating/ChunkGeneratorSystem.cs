@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using System.Linq;
 
 
 [UpdateAfter(typeof(ChunkSpawnerSystem))]
@@ -255,13 +256,15 @@ partial struct ChunkGeneratorSystem : ISystem
     }
 
     // Sample function if needed for later. Will be used for external systems to gather heightmap data. Read only
-    public MajorChunk getMajorChunk(ref SystemState state, int2 position)
+    public Entity getMajorChunkEntity(int2 position)
     {
-        ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
-        position /= chunkWorld.MajorChunkSize;
-        ComponentLookup<MajorChunk> lookup = SystemAPI.GetComponentLookup<MajorChunk>();
         majorChunkMap.TryGetValue(position, out Entity entity);
-        return lookup.GetRefRO(entity).ValueRO;
+        return entity;
+    }
+
+    public bool majorChunkExists(int2 position)
+    {
+        return majorChunkMap.ContainsKey(position);
     }
 
 }

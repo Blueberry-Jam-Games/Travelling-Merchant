@@ -777,7 +777,7 @@ MonoBehaviour:
   chunkCubeSize: 32
   MinorPerMajorChunk: 24
   isoLevel: 0
-  numPointsPerAxis: 32
+  numPointsPerAxis: 33
   boundsSize: 1
   terrainMaterial: TerrainMaterial
 --- !u!114 &1302606291

@@ -4,6 +4,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using Unity.Physics;
+using Unity.Collections;
 
 [UpdateInGroup(typeof(PresentationSystemGroup))]
 [BurstCompile(DisableDirectCall = true)]
@@ -12,16 +13,25 @@ partial class ChunkMeshSystem : SystemBase
     UnityEngine.Material terrainMaterial;
     const int threadGroupSize = 8;
     public ComputeShader shader;
+    public ComputeShader heightmapShader;
     public DensityGenerator densityGenerator;
+
+    ComputeBuffer heightmapBuffer;
+
     ComputeBuffer triangleBuffer;
     ComputeBuffer pointsBuffer;
     ComputeBuffer triCountBuffer;
 
     ComputeBuffer cubeMarchArray;
 
+    ComponentLookup<MajorChunk> majorChunkLookup;
+
+    HeightmapGenerator heightmapper;
+
     protected override void OnCreate()
     {
         shader = Resources.Load<ComputeShader>("ComputeShaders/MarchingCubes");
+        heightmapShader = Resources.Load<ComputeShader>("ComputeShaders/MinorChunkHeightmap");
         densityGenerator = new NoiseDensity();
         densityGenerator.densityShader = Resources.Load<ComputeShader>("ComputeShaders/NoiseDensity");
 
@@ -33,6 +43,10 @@ partial class ChunkMeshSystem : SystemBase
             cubeMarchArray = new ComputeBuffer(4096, sizeof(int), ComputeBufferType.Structured);
             cubeMarchArray.SetData(CubeMarchTriangulation.map);
         }
+
+        majorChunkLookup = GetComponentLookup<MajorChunk>(isReadOnly: true);
+
+        heightmapper = new HeightmapGenerator(heightmapShader);
     }
 
     protected override void OnStartRunning()
@@ -52,10 +66,15 @@ partial class ChunkMeshSystem : SystemBase
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
         Entity chunkWorldEntity = SystemAPI.GetSingletonEntity<ChunkWorldSingleton>();
 
-        if(pointsBuffer == null || triangleBuffer == null || triCountBuffer == null)
+        if(pointsBuffer == null || triangleBuffer == null || triCountBuffer == null || heightmapBuffer == null)
         {
             CreateBuffers(chunkWorld.numPointsPerAxis);
         }
+
+        // Access list of major chunks
+        ref ChunkGeneratorSystem chunkGeneratorSystem = ref World.Unmanaged.GetUnsafeSystemRef<ChunkGeneratorSystem>(World.Unmanaged.GetExistingUnmanagedSystem<ChunkGeneratorSystem>());
+
+        majorChunkLookup.Update(this);
 
         // 
         // Create the Mesh for a chunk requesting an update and set to Mesh Manager 
@@ -71,86 +90,111 @@ partial class ChunkMeshSystem : SystemBase
                 RefRW<PhysicsCollider>
                 >().WithEntityAccess())
         {
-            // Get local copy of values
-            Chunk localChunk = chunk.ValueRO;
-            int numPointsPerAxis = chunkWorld.numPointsPerAxis;
-            int boundsSize = chunkWorld.chunkSize;
-            Vector4 offset = Vector4.zero;
-
-            // Imported
-            int numVoxelsPerAxis = numPointsPerAxis - 1;
-            int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
-            float pointSpacing = (float) boundsSize / (float) (numPointsPerAxis - 1);
-
-            int3 coord = localChunk.chunkPosition;
-            Vector3 centre = CentreFromCoord(coord, boundsSize);
-
-            densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
-
-            int marchKernel = shader.FindKernel("March");
-
-            shader.SetBuffer(marchKernel, "points", pointsBuffer);
-            shader.SetBuffer(marchKernel, "triangles", triangleBuffer);
-            triangleBuffer.SetCounterValue(0);
-            shader.SetInt("numPointsPerAxis", numPointsPerAxis);
-            shader.SetFloat("isoLevel", chunkWorld.isoLevel);
-            shader.SetBuffer(marchKernel, "cubeMarchArray", cubeMarchArray);
-
-            shader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-            // Get number of triangles in the triangle buffer
-            ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
-            int[] triCountArray = { 0 };
-            triCountBuffer.GetData(triCountArray);
-            int numTris = triCountArray[0];
-
-            if(numTris == 0)
+            float4 heightmapCorners;
+            if(chunkGeneratorSystem.majorChunkExists(chunk.ValueRO.majorChunkPosition))
             {
-                ChunkMeshManagerSystem.Instance.SetMesh(new Mesh(), chunk.ValueRO.meshIndex);
-
-                if (physicsCollider.ValueRW.Value.IsCreated)
-                    physicsCollider.ValueRW.Value.Dispose();
-                
-                SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
-
-                continue;
-            }
-
-            // Get triangle data from shader
-            Triangle[] tris = new Triangle[numTris];
-            triangleBuffer.GetData(tris, 0, 0, numTris);
-
-            Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(localChunk.meshIndex);
-            mesh.Clear();
-
-            // Move data into arrays. * 3 used for 3 verticies per face 
-            var vertices = new Vector3[numTris * 3];
-            var meshTriangles = new int[numTris * 3];
-
-            for (int i = 0; i < numTris; i++)
-            {
-                for (int j = 0; j < 3; j++)
+                Entity majorChunk = chunkGeneratorSystem.getMajorChunkEntity(chunk.ValueRO.majorChunkPosition);
+                if(SystemAPI.IsComponentEnabled<MajorChunkReady>(majorChunk))
                 {
-                    meshTriangles[i * 3 + j] = i * 3 + j;
-                    vertices[i * 3 + j] = tris[i][j];
+                    if(!majorChunkLookup.TryGetComponent(majorChunk, out MajorChunk output))
+                    {
+                        Debug.LogError("No Component");
+                        continue;
+                    }
+
+                    heightmapCorners = output.Quad(chunk.ValueRO.chunkPosition.xz);
+
+                    heightmapper.Generate(ref heightmapBuffer, heightmapCorners, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
+
+                    //Density
+                    int numPointsPerAxis = chunkWorld.numPointsPerAxis;
+                    int boundsSize = chunkWorld.chunkSize;
+                    Vector4 offset = Vector4.zero;
+
+                    // Imported
+                    int numVoxelsPerAxis = numPointsPerAxis - 1;
+                    int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
+                    float pointSpacing = (float) boundsSize / (float) (numPointsPerAxis - 1);
+
+                    int3 coord = chunk.ValueRO.chunkPosition;
+                    Vector3 centre = CornerFromCoords(coord, boundsSize);
+
+                    densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
+
+                    int marchKernel = shader.FindKernel("March");
+
+                    shader.SetBuffer(marchKernel, "points", pointsBuffer);
+                    shader.SetBuffer(marchKernel, "triangles", triangleBuffer);
+                    triangleBuffer.SetCounterValue(0);
+                    shader.SetInt("numPointsPerAxis", numPointsPerAxis);
+                    shader.SetFloat("isoLevel", chunkWorld.isoLevel);
+                    shader.SetBuffer(marchKernel, "cubeMarchArray", cubeMarchArray);
+
+                    shader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+
+                    // Get number of triangles in the triangle buffer
+                    ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
+                    int[] triCountArray = { 0 };
+                    triCountBuffer.GetData(triCountArray);
+                    int numTris = triCountArray[0];
+
+                    if(numTris == 0)
+                    {
+                        ChunkMeshManagerSystem.Instance.SetMesh(new Mesh(), chunk.ValueRO.meshIndex);
+
+                        if (physicsCollider.ValueRW.Value.IsCreated)
+                            physicsCollider.ValueRW.Value.Dispose();
+                        
+                        SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+
+                        continue;
+                    }
+
+                    // Get triangle data from shader
+                    Triangle[] tris = new Triangle[numTris];
+                    triangleBuffer.GetData(tris, 0, 0, numTris);
+
+                    Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
+                    mesh.Clear();
+
+                    // Move data into arrays. * 3 used for 3 verticies per face 
+                    var vertices = new Vector3[numTris * 3];
+                    var meshTriangles = new int[numTris * 3];
+
+                    for (int i = 0; i < numTris; i++)
+                    {
+                        for (int j = 0; j < 3; j++)
+                        {
+                            meshTriangles[i * 3 + j] = i * 3 + j;
+                            vertices[i * 3 + j] = tris[i][j];
+                        }
+                    }
+                    mesh.vertices = vertices;
+                    mesh.triangles = meshTriangles;
+
+                    mesh.RecalculateNormals();
+                    mesh.RecalculateTangents();
+                    mesh.RecalculateBounds();
+
+                    ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
+
+                    if (physicsCollider.ValueRW.Value.IsCreated)
+                        physicsCollider.ValueRW.Value.Dispose();
+
+                    physicsCollider.ValueRW.Value = Unity.Physics.MeshCollider.Create(mesh, CollisionFilter.Default, Unity.Physics.Material.Default);
+
+                    SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+                    break;
+                }
+                else
+                {
+                    continue;
                 }
             }
-            mesh.vertices = vertices;
-            mesh.triangles = meshTriangles;
-
-            mesh.RecalculateNormals();
-            mesh.RecalculateTangents();
-            mesh.RecalculateBounds();
-
-            ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
-
-            if (physicsCollider.ValueRW.Value.IsCreated)
-                physicsCollider.ValueRW.Value.Dispose();
-
-            physicsCollider.ValueRW.Value = Unity.Physics.MeshCollider.Create(mesh, CollisionFilter.Default, Unity.Physics.Material.Default);
-
-            SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
-            break;
+            else
+            {
+                continue;
+            }
         }
 
         foreach (var (chunk, transform, entity) in SystemAPI.Query<RefRO<Chunk>, RefRO<LocalTransform>>().WithNone<ChunkSleeping>().WithEntityAccess())
@@ -159,7 +203,7 @@ partial class ChunkMeshSystem : SystemBase
         }
     }
 
-    float3 CentreFromCoord(int3 coord, float boundsSize)
+    float3 CornerFromCoords(int3 coord, float boundsSize)
     {
 
         return new float3(coord.x, coord.y, coord.z) * boundsSize;
@@ -199,6 +243,7 @@ partial class ChunkMeshSystem : SystemBase
         triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 4 * 3, ComputeBufferType.Append);
         pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
         triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
+        heightmapBuffer = new ComputeBuffer(numPointsPerAxis * numPointsPerAxis, sizeof(float));
     }
 
 
@@ -209,6 +254,7 @@ partial class ChunkMeshSystem : SystemBase
             triangleBuffer.Dispose();
             pointsBuffer.Dispose();
             triCountBuffer.Dispose();
+            heightmapBuffer.Dispose();
         }
         base.OnDestroy();
     }

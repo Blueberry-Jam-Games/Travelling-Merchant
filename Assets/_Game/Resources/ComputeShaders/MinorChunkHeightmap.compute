@@ -1,0 +1,47 @@
+float BilinearInterpolate(float4 corners, float2 uv, uint numPointsPerAxis)
+{
+    uv = uv / ((float) numPointsPerAxis - 1);
+    float bottom = lerp(corners.x, corners.y, uv.x);
+    float top = lerp(corners.z, corners.w, uv.x);
+    return lerp(bottom, top, uv.y);
+}
+
+#pragma kernel Heightmap
+#include "/Includes/FastNoiseLite.hlsl"
+
+RWStructuredBuffer<float> HeightmapBuffer;
+
+int4 chunkPosition;
+uint numPointsPerAxis;
+float chunkSize;
+float scale;
+float worldHeight;
+int seed;
+float4 corners;
+
+[numthreads(8,8,1)]
+void Heightmap(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis)
+        return;
+
+    // Create and configure noise state
+    fnl_state noise = fnlCreateState(seed);
+    noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
+
+    uint index = id.y * numPointsPerAxis + id.x;
+ 
+    float2 chunkBase = (float2)chunkPosition.xy * (float)chunkSize;
+
+    float2 pos = float2(id.x, id.y) + chunkBase;
+
+    float height = BilinearInterpolate(corners, id.xy, numPointsPerAxis);
+
+    float2 posScaled = pos * scale;
+
+    // float noiseResult = fnlGetNoise2D(noise, posScaled.x, posScaled.y);
+    // float h = noiseResult * 0.5 + 0.5;
+    // float height = h * worldHeight;
+
+    HeightmapBuffer[index] = height;
+}

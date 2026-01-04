@@ -66,6 +66,7 @@ partial class ChunkMajorSetupSystem : SystemBase
 
                 chunk.ValueRW.heightmap = heights;
                 chunk.ValueRW.generationStep = 1;
+                SystemAPI.SetComponentEnabled<MajorChunkReady>(entity, true);
             }
         }
     }

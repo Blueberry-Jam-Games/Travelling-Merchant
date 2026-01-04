@@ -22,6 +22,7 @@ class MajorChunkAuthoringBaker : Baker<MajorChunkAuthoring>
 
 public struct MajorChunk : IComponentData
 {
+    const int HeightmapResolution = 25;
     public int2 chunkPosition;
     public int generationStep; // Current step of generation. -1 == released, 2 <= in generation or in use. 
     public FixedList4096Bytes<float> heightmap; // Stores rough vertex heights for minor chunks and structure generation.
@@ -33,20 +34,32 @@ public struct MajorChunk : IComponentData
         set => heightmap[Index(x, z)] = value;
     }
 
-    public float4 SampleQuad(int2 baseCoord)
+    public float4 Quad(int2 baseCoord)
     {
-        int idx00 = Index(baseCoord.x,     baseCoord.y);
-        int idx10 = Index(baseCoord.x + 1, baseCoord.y);
-        int idx01 = Index(baseCoord.x,     baseCoord.y + 1);
-        int idx11 = Index(baseCoord.x + 1, baseCoord.y + 1);
+        int x0 = Wrap(baseCoord.x,     HeightmapResolution);
+        int z0 = Wrap(baseCoord.y,     HeightmapResolution);
+        int x1 = Wrap(baseCoord.x + 1, HeightmapResolution);
+        int z1 = Wrap(baseCoord.y + 1, HeightmapResolution);
+
+        int idx00 = Index(x0, z0);
+        int idx10 = Index(x1, z0);
+        int idx01 = Index(x0, z1);
+        int idx11 = Index(x1, z1);
 
         return new float4(
-            heightmap[idx00],
-            heightmap[idx10],
-            heightmap[idx01],
-            heightmap[idx11]
+            heightmap[idx00], // (0,0)
+            heightmap[idx10], // (1,0)
+            heightmap[idx01], // (0,1)
+            heightmap[idx11]  // (1,1)
         );
     }
+
+    private static int Wrap(int v, int size)
+{
+    v %= size;
+    if (v < 0) v += size;
+    return v;
+}
 
     private int Index(int x, int z)
     {
