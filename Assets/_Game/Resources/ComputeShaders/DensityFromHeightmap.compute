@@ -40,7 +40,8 @@ void Density (int3 id : SV_DispatchThreadID)
     fnl_state noise = fnlCreateState(seed);
     noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
 
-    float3 pos = centre + id * spacing - boundsSize/2;
+    //float3 pos = centre + id * spacing - boundsSize/2;
+    float3 pos = centre + id * spacing;
 
     // float noise = 0;
 
@@ -58,7 +59,7 @@ void Density (int3 id : SV_DispatchThreadID)
     //     frequency *= lacunarity;
     // }
     int heightmapIndex = index2dFromCoord(id.x, id.z);
-    float finalVal = - (HeightmapBuffer[heightmapIndex] - pos.y);
+    float finalVal = - (pos.y - HeightmapBuffer[heightmapIndex]);
  
     if (pos.y < hardFloor) {
         finalVal += hardFloorWeight;

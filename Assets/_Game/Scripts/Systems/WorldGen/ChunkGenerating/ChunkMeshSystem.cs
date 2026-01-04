@@ -14,6 +14,7 @@ partial class ChunkMeshSystem : SystemBase
     const int threadGroupSize = 8;
     public ComputeShader shader;
     public ComputeShader heightmapShader;
+    public ComputeShader densityShader;
     public DensityGenerator densityGenerator;
 
     ComputeBuffer heightmapBuffer;
@@ -27,11 +28,13 @@ partial class ChunkMeshSystem : SystemBase
     ComponentLookup<MajorChunk> majorChunkLookup;
 
     HeightmapGenerator heightmapper;
+    DensityFromHeightmapGenerator densityFromHeightmapGenerator;
 
     protected override void OnCreate()
     {
         shader = Resources.Load<ComputeShader>("ComputeShaders/MarchingCubes");
         heightmapShader = Resources.Load<ComputeShader>("ComputeShaders/MinorChunkHeightmap");
+        densityShader = Resources.Load<ComputeShader>("ComputeShaders/DensityFromHeightmap");
         densityGenerator = new NoiseDensity();
         densityGenerator.densityShader = Resources.Load<ComputeShader>("ComputeShaders/NoiseDensity");
 
@@ -47,6 +50,7 @@ partial class ChunkMeshSystem : SystemBase
         majorChunkLookup = GetComponentLookup<MajorChunk>(isReadOnly: true);
 
         heightmapper = new HeightmapGenerator(heightmapShader);
+        densityFromHeightmapGenerator = new DensityFromHeightmapGenerator(densityShader);
     }
 
     protected override void OnStartRunning()
@@ -102,7 +106,17 @@ partial class ChunkMeshSystem : SystemBase
                         continue;
                     }
 
-                    heightmapCorners = output.Quad(chunk.ValueRO.chunkPosition.xz);
+                    if(math.any(chunk.ValueRO.chunkPosition < 0))
+                    {
+                        Debug.Log("Major Chunk position: " + output.chunkPosition + " SavedValue: " + chunk.ValueRO.majorChunkPosition);
+                    }
+
+                    int2 chunkPosition = chunk.ValueRO.chunkPosition.xz;
+                    chunkPosition = chunkPosition % chunkWorld.MinorPerMajorChunk;
+                    if(chunkPosition.x < 0) chunkPosition.x += chunkWorld.MinorPerMajorChunk;
+                    if(chunkPosition.y < 0) chunkPosition.y += chunkWorld.MinorPerMajorChunk;
+
+                    heightmapCorners = output.Quad(chunkPosition);
 
                     heightmapper.Generate(ref heightmapBuffer, heightmapCorners, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
 
@@ -119,7 +133,9 @@ partial class ChunkMeshSystem : SystemBase
                     int3 coord = chunk.ValueRO.chunkPosition;
                     Vector3 centre = CornerFromCoords(coord, boundsSize);
 
-                    densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
+                    // densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
+
+                    densityFromHeightmapGenerator.Generate(ref heightmapBuffer, pointsBuffer, numPointsPerAxis, boundsSize, centre, pointSpacing, 1);
 
                     int marchKernel = shader.FindKernel("March");
 

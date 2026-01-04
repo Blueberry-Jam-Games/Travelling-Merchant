@@ -55,11 +55,11 @@ public struct MajorChunk : IComponentData
     }
 
     private static int Wrap(int v, int size)
-{
-    v %= size;
-    if (v < 0) v += size;
-    return v;
-}
+    {
+        v %= size;
+        if (v < 0) v += size;
+        return v;
+    }
 
     private int Index(int x, int z)
     {

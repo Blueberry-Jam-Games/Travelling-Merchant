@@ -23,7 +23,7 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
         int calculatedChunkCount = (int)math.pow(authoring.renderDistance * 2 + 1, 3) + (int)math.pow(authoring.renderDistance * 2 + 1, 2) * 4; // Revise Later
 
         const int majorChunkPadding = 3; // Passing multiple for chunks. Keep at 3
-        int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) * majorChunkPadding + 1);
+        int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) * majorChunkPadding + 1) * 2;
 
         var entity = GetEntity(TransformUsageFlags.None);
         AddComponent(entity, new ChunkWorldSingleton

@@ -206,7 +206,7 @@ partial struct ChunkGeneratorSystem : ISystem
                             int3 chunkOldPosition = chunk.chunkPosition;
                             LocalTransform transform = SystemAPI.GetComponent<LocalTransform>(outChunk);
                             chunk.chunkPosition = position;
-                            chunk.majorChunkPosition = (int2) math.floor(position.xz / chunkWorld.chunkSize);
+                            chunk.majorChunkPosition = (int2) math.floor((float2) position.xz / (float2) chunkWorld.MinorPerMajorChunk);
                             transform.Position = position * chunkWorld.chunkSize;
 
                             minorChunkMap.Remove(chunkOldPosition);

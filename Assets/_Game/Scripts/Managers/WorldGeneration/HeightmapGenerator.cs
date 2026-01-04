@@ -5,25 +5,25 @@ public class HeightmapGenerator
 {
     public HeightmapGenerator(ComputeShader baseShader)
     {
-        densityShader = baseShader;
+        heightmapShader = baseShader;
     }
     const int threadGroupSize = 8;
-    public ComputeShader densityShader;
+    public ComputeShader heightmapShader;
 
     public void Generate(ref ComputeBuffer heightmap, float4 roughCorners, int numPointsPerAxis, float dimensions, int3 cornerPosition, int seed, float scale)
     {
-        int kernel = densityShader.FindKernel("Heightmap");
-        densityShader.SetBuffer(kernel, "HeightmapBuffer", heightmap);
-        densityShader.SetInts("chunkPosition", cornerPosition.x, cornerPosition.y, cornerPosition.z, 0);
-        densityShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-        densityShader.SetFloat("chunkSize", dimensions);
-        densityShader.SetFloat("scale", scale);
-        densityShader.SetFloat("worldHeight", 10);
-        densityShader.SetInt("seed", seed);
-        densityShader.SetVector("corners", roughCorners);
+        int kernel = heightmapShader.FindKernel("Heightmap");
+        heightmapShader.SetBuffer(kernel, "HeightmapBuffer", heightmap);
+        heightmapShader.SetInts("chunkPosition", cornerPosition.x, cornerPosition.y, cornerPosition.z, 0);
+        heightmapShader.SetInt("numPointsPerAxis", numPointsPerAxis);
+        heightmapShader.SetFloat("chunkSize", dimensions);
+        heightmapShader.SetFloat("scale", scale);
+        heightmapShader.SetFloat("worldHeight", 10);
+        heightmapShader.SetInt("seed", seed);
+        heightmapShader.SetVector("corners", roughCorners);
 
         int numThreadsPerAxis = Mathf.CeilToInt (numPointsPerAxis / (float) threadGroupSize);
 
-        densityShader.Dispatch(kernel, numThreadsPerAxis, numThreadsPerAxis, 1);
+        heightmapShader.Dispatch(kernel, numThreadsPerAxis, numThreadsPerAxis, 1);
     }
 }
