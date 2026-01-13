@@ -11,11 +11,13 @@ partial class ChunkMajorSetupSystem : SystemBase
 {
     public ComputeShader heightmapper;
     private ComputeBuffer heightmap;
+    private ComputeBuffer gradientMap;
 
     protected override void OnCreate()
     {
         heightmapper = Resources.Load<ComputeShader>("ComputeShaders/RoughHeightmap");
         heightmap = new ComputeBuffer(25 * 25, sizeof(float));
+        gradientMap = new ComputeBuffer(25 * 25, sizeof(float) * 2);
     }
 
     protected override  void OnUpdate()
@@ -38,6 +40,7 @@ partial class ChunkMajorSetupSystem : SystemBase
             {
                 int kernel = heightmapper.FindKernel("Heightmap");
                 heightmapper.SetBuffer(kernel, "HeightmapBuffer", heightmap);
+                heightmapper.SetBuffer(kernel, "GradientBuffer", gradientMap);
 
                 heightmapper.SetInts("chunkPosition", chunk.ValueRO.chunkPosition.x, chunk.ValueRO.chunkPosition.y);
 
@@ -55,18 +58,21 @@ partial class ChunkMajorSetupSystem : SystemBase
 
                 heightmapper.Dispatch(kernel, groupsX, groupsY, 1);
 
-                float[] temp = new float[25 * 25];
-                heightmap.GetData(temp);
+                float[] heights = new float[25 * 25];
+                float2[] gradients = new float2[25 * 25];
+                heightmap.GetData(heights);
+                gradientMap.GetData(gradients);
 
-                FixedList4096Bytes<float> heights = default;
-                for (int i = 0; i < temp.Length; i++)
+                if(chunk.ValueRO.heightmapData.IsCreated)
                 {
-                    heights.Add(temp[i]);
+                    chunk.ValueRW.heightmapData.Dispose();
                 }
 
-                chunk.ValueRW.heightmap = heights;
+                chunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, gradients, 25);
                 chunk.ValueRW.generationStep = 1;
                 SystemAPI.SetComponentEnabled<MajorChunkReady>(entity, true);
+
+                break;
             }
         }
     }

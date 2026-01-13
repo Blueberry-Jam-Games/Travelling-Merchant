@@ -1,6 +1,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 
 class MajorChunkAuthoring : MonoBehaviour
@@ -25,13 +26,13 @@ public struct MajorChunk : IComponentData
     const int HeightmapResolution = 25;
     public int2 chunkPosition;
     public int generationStep; // Current step of generation. -1 == released, 2 <= in generation or in use. 
-    public FixedList4096Bytes<float> heightmap; // Stores rough vertex heights for minor chunks and structure generation.
+    public BlobAssetReference<HeightmapData> heightmapData;
 
     // TODO change 17 to be MinorPerMajorChunk + 1.
     public float this[int x, int z]
     {
-        get => heightmap[Index(x, z)];
-        set => heightmap[Index(x, z)] = value;
+        get => heightmapData.Value.heights[Index(x, z)];
+        set => heightmapData.Value.heights[Index(x, z)] = value;
     }
 
     public float4 Quad(int2 baseCoord)
@@ -47,10 +48,10 @@ public struct MajorChunk : IComponentData
         int idx11 = Index(x1, z1);
 
         return new float4(
-            heightmap[idx00], // (0,0)
-            heightmap[idx10], // (1,0)
-            heightmap[idx01], // (0,1)
-            heightmap[idx11]  // (1,1)
+            heightmapData.Value.heights[idx00], // (0,0)
+            heightmapData.Value.heights[idx10], // (1,0)
+            heightmapData.Value.heights[idx01], // (0,1)
+            heightmapData.Value.heights[idx11]  // (1,1)
         );
     }
 
@@ -73,5 +74,39 @@ public struct MajorChunk : IComponentData
                 $"Heightmap access out of range: ({x}, {z})");
     #endif
         return z * 25 + x;
+    }
+}
+
+public struct HeightmapData
+{
+    public int resolution;
+    public BlobArray<float> heights;
+    public BlobArray<float2> gradients;
+}
+
+public static class HeightmapDataBlobBuilder
+{
+    public static BlobAssetReference<HeightmapData> Create(float[] heights, float2[] gradients, int resolution)
+    {
+        var builder = new BlobBuilder(Allocator.Temp);
+        ref HeightmapData root = ref builder.ConstructRoot<HeightmapData>();
+
+        root.resolution = resolution;
+
+        var heightArray = builder.Allocate(ref root.heights, heights.Length);
+
+        var gradientArray = builder.Allocate(ref root.gradients, gradients.Length);
+
+        for (int i = 0; i < heights.Length; i++)
+            heightArray[i] = heights[i];
+
+        for (int i = 0; i < gradients.Length; i++)
+            gradientArray[i] = gradients[i];
+
+        var blob = builder.CreateBlobAssetReference<HeightmapData>(
+            Allocator.Persistent);
+
+        builder.Dispose();
+        return blob;
     }
 }
