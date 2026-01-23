@@ -63,6 +63,21 @@ partial class ChunkMajorSetupSystem : SystemBase
                 heightmap.GetData(heights);
                 gradientMap.GetData(gradients);
 
+                // string debug = "";
+                // for(int i = 0; i < gradients.Length; i++)
+                // {
+                //     debug += "[";
+                //     debug += gradients[i].x;
+                //     debug += " , ";
+                //     debug += gradients[i].y;
+                //     debug += "] ";
+                //     if(i == 24)
+                //     {
+                //         debug += "\n";
+                //     }
+                // }
+                // Debug.Log(debug);
+
                 if(chunk.ValueRO.heightmapData.IsCreated)
                 {
                     chunk.ValueRW.heightmapData.Dispose();

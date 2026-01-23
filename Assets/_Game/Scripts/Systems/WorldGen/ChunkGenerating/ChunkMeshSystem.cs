@@ -95,6 +95,8 @@ partial class ChunkMeshSystem : SystemBase
                 >().WithEntityAccess())
         {
             float4 heightmapCorners;
+            float4 xgradients;
+            float4 ygradients;
             if(chunkGeneratorSystem.majorChunkExists(chunk.ValueRO.majorChunkPosition))
             {
                 Entity majorChunk = chunkGeneratorSystem.getMajorChunkEntity(chunk.ValueRO.majorChunkPosition);
@@ -106,19 +108,16 @@ partial class ChunkMeshSystem : SystemBase
                         continue;
                     }
 
-                    if(math.any(chunk.ValueRO.chunkPosition < 0))
-                    {
-                        Debug.Log("Major Chunk position: " + output.chunkPosition + " SavedValue: " + chunk.ValueRO.majorChunkPosition);
-                    }
-
                     int2 chunkPosition = chunk.ValueRO.chunkPosition.xz;
                     chunkPosition = chunkPosition % chunkWorld.MinorPerMajorChunk;
                     if(chunkPosition.x < 0) chunkPosition.x += chunkWorld.MinorPerMajorChunk;
                     if(chunkPosition.y < 0) chunkPosition.y += chunkWorld.MinorPerMajorChunk;
 
                     heightmapCorners = output.Quad(chunkPosition);
+                    xgradients = output.xgradients(chunkPosition);
+                    ygradients = output.ygradients(chunkPosition);
 
-                    heightmapper.Generate(ref heightmapBuffer, heightmapCorners, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
+                    heightmapper.Generate(ref heightmapBuffer, heightmapCorners, xgradients, ygradients, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
 
                     //Density
                     int numPointsPerAxis = chunkWorld.numPointsPerAxis;

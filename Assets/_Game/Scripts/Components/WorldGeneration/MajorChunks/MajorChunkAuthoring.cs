@@ -55,6 +55,77 @@ public struct MajorChunk : IComponentData
         );
     }
 
+    public float[] gradients(int2 baseCoord)
+    {
+        float[] output = new float[8];
+
+        int x0 = Wrap(baseCoord.x,     HeightmapResolution);
+        int z0 = Wrap(baseCoord.y,     HeightmapResolution);
+        int x1 = Wrap(baseCoord.x + 1, HeightmapResolution);
+        int z1 = Wrap(baseCoord.y + 1, HeightmapResolution);
+
+        int idx00 = Index(x0, z0);
+        int idx10 = Index(x1, z0);
+        int idx01 = Index(x0, z1);
+        int idx11 = Index(x1, z1);
+
+        output[0] = heightmapData.Value.gradients[idx00].x;
+        output[1] = heightmapData.Value.gradients[idx10].x;
+        output[2] = heightmapData.Value.gradients[idx01].x;
+        output[3] = heightmapData.Value.gradients[idx11].x;
+
+        output[4] = heightmapData.Value.gradients[idx00].y;
+        output[5] = heightmapData.Value.gradients[idx10].y;
+        output[6] = heightmapData.Value.gradients[idx01].y;
+        output[7] = heightmapData.Value.gradients[idx11].y;
+
+        return output;
+    }
+
+    public float4 xgradients(int2 baseCoord)
+    {
+        float4 output = new float4();
+
+        int x0 = Wrap(baseCoord.x,     HeightmapResolution);
+        int z0 = Wrap(baseCoord.y,     HeightmapResolution);
+        int x1 = Wrap(baseCoord.x + 1, HeightmapResolution);
+        int z1 = Wrap(baseCoord.y + 1, HeightmapResolution);
+
+        int idx00 = Index(x0, z0);
+        int idx10 = Index(x1, z0);
+        int idx01 = Index(x0, z1);
+        int idx11 = Index(x1, z1);
+
+        output.x = heightmapData.Value.gradients[idx00].x;
+        output.y = heightmapData.Value.gradients[idx10].x;
+        output.z = heightmapData.Value.gradients[idx01].x;
+        output.w = heightmapData.Value.gradients[idx11].x;
+
+        return output;
+    }
+
+    public float4 ygradients(int2 baseCoord)
+    {
+        float4 output = new float4();
+
+        int x0 = Wrap(baseCoord.x,     HeightmapResolution);
+        int z0 = Wrap(baseCoord.y,     HeightmapResolution);
+        int x1 = Wrap(baseCoord.x + 1, HeightmapResolution);
+        int z1 = Wrap(baseCoord.y + 1, HeightmapResolution);
+
+        int idx00 = Index(x0, z0);
+        int idx10 = Index(x1, z0);
+        int idx01 = Index(x0, z1);
+        int idx11 = Index(x1, z1);
+
+        output.x = heightmapData.Value.gradients[idx00].y;
+        output.y = heightmapData.Value.gradients[idx10].y;
+        output.z = heightmapData.Value.gradients[idx01].y;
+        output.w = heightmapData.Value.gradients[idx11].y;
+
+        return output;
+    }
+
     private static int Wrap(int v, int size)
     {
         v %= size;

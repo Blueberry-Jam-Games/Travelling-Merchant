@@ -6,6 +6,52 @@ float BilinearInterpolate(float4 corners, float2 uv, uint numPointsPerAxis)
     return lerp(bottom, top, uv.y);
 }
 
+float Hermite1D(float p0, float p1, float m0, float m1, float t)
+{
+    float t2 = t * t;
+    float t3 = t2 * t;
+
+    return
+        (2*t3 - 3*t2 + 1) * p0 +
+        (t3 - 2*t2 + t) * m0 +
+        (-2*t3 + 3*t2) * p1 +
+        (t3 - t2) * m1;
+}
+
+float HermiteBilinear(float4 corners, float4 xgradients, float4 ygradients, float2 uv, uint numPointsPerAxis)
+{
+    float2 t = uv / ((float)numPointsPerAxis - 1);
+
+    // Heights
+    float h00 = corners.x;
+    float h10 = corners.y;
+    float h01 = corners.z;
+    float h11 = corners.w;
+
+    // X gradients
+    float gx00 = xgradients.x;
+    float gx10 = xgradients.y;
+    float gx01 = xgradients.z;
+    float gx11 = xgradients.w;
+
+    // Y gradients
+    float gy00 = ygradients.x;
+    float gy10 = ygradients.y;
+    float gy01 = ygradients.z;
+    float gy11 = ygradients.w;
+
+    // Interpolate along X at bottom and top
+    float bottom = Hermite1D(h00, h10, gx00, gx10, t.x);
+    float top    = Hermite1D(h01, h11, gx01, gx11, t.x);
+
+    // Interpolate Y gradients along X
+    float gBottom = lerp(gy00, gy10, t.x);
+    float gTop    = lerp(gy01, gy11, t.x);
+
+    // Interpolate along Y
+    return Hermite1D(bottom, top, gBottom, gTop, t.y);
+}
+
 #pragma kernel Heightmap
 #include "/Includes/FastNoiseLite.hlsl"
 
@@ -18,6 +64,9 @@ float scale;
 float worldHeight;
 int seed;
 float4 corners;
+//float gradients[8]; // Stored in x then y. corner 1 = 0, 4
+float4 xgradients;
+float4 ygradients;
 
 [numthreads(8,8,1)]
 void Heightmap(uint3 id : SV_DispatchThreadID)
@@ -33,7 +82,9 @@ void Heightmap(uint3 id : SV_DispatchThreadID)
  
     //float2 chunkBase = (float2)chunkPosition.xy * (float)chunkSize;
 
-    float height = BilinearInterpolate(corners, id.xy, numPointsPerAxis);
+    //float height = BilinearInterpolate(corners, id.xy, numPointsPerAxis);
+
+    float height = HermiteBilinear(corners, xgradients, ygradients, id.xy, numPointsPerAxis);
 
     HeightmapBuffer[index] = height;
 }

@@ -26,16 +26,25 @@ void Heightmap(uint3 id : SV_DispatchThreadID)
 
     float2 pos = ((float2)id.xy + chunkBase) * scale;
 
-    float eps = 0.01;
-
     float noiseResult = fnlGetNoise2D(noise, pos.x, pos.y);
     float h = noiseResult * 0.5 + 0.5;
     float height = h * worldHeight;
 
-    float nx = fnlGetNoise2D(noise, pos.x + eps, pos.y) - fnlGetNoise2D(noise, pos.x - eps, pos.y);
-    float nz = fnlGetNoise2D(noise, pos.x, pos.y + eps) - fnlGetNoise2D(noise, pos.x, pos.y - eps);
+    float eps = 0.01 * scale;
 
-    float2 gradient = float2(nx, nz) / (2 * eps);
+    // Sample raw noise
+    float n_px = fnlGetNoise2D(noise, pos.x + eps, pos.y);
+    float n_nx = fnlGetNoise2D(noise, pos.x - eps, pos.y);
+    float n_pz = fnlGetNoise2D(noise, pos.x, pos.y + eps);
+    float n_nz = fnlGetNoise2D(noise, pos.x, pos.y - eps);
+
+    // Central difference on noise
+    float dndx = (n_px - n_nx) / (2 * eps) * worldHeight * 2;
+    float dndz = (n_pz - n_nz) / (2 * eps) * worldHeight * 2;
+
+    // Convert noise derivative → height derivative
+    //float heightScale = worldHeight;
+    float2 gradient = float2(dndx, dndz);
 
     HeightmapBuffer[index] = height;
     GradientBuffer[index] = gradient;
