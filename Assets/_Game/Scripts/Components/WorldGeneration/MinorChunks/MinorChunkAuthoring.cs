@@ -26,4 +26,5 @@ public struct Chunk : IComponentData
     public int3 chunkPosition;
     public int meshIndex;
     public int materialIndex;
+    public BlobAssetReference<MeshBlob> mesh;
 }

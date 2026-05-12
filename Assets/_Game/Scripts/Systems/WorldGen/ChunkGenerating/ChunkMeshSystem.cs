@@ -172,6 +172,8 @@ partial class ChunkMeshSystem : SystemBase
                     Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
                     mesh.Clear();
 
+                    //chunk.ValueRW.mesh = MeshBlobUtility.CreateMeshBlob(tris)
+
                     // Move data into arrays. * 3 used for 3 verticies per face 
                     var vertices = new Vector3[numTris * 3];
                     var meshTriangles = new int[numTris * 3];
@@ -224,30 +226,6 @@ partial class ChunkMeshSystem : SystemBase
         return new float3(coord.x, coord.y, coord.z) * boundsSize;
     }
 
-    struct Triangle
-    {
-#pragma warning disable 649 // disable unassigned variable warning
-        public float4 a;
-        public float4 b;
-        public float4 c;
-
-        public float3 this[int i]
-        {
-            get
-            {
-                switch (i)
-                {
-                    case 0:
-                        return new float3(a.x, a.y, a.z);
-                    case 1:
-                        return new float3(b.x, b.y, b.z);
-                    default:
-                        return new float3(c.x, c.y, c.z);
-                }
-            }
-        }
-    }
-
     void CreateBuffers(int numPointsPerAxis)
     {
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
@@ -274,3 +252,27 @@ partial class ChunkMeshSystem : SystemBase
         base.OnDestroy();
     }
 }
+
+public struct Triangle
+    {
+#pragma warning disable 649 // disable unassigned variable warning
+        public float4 a;
+        public float4 b;
+        public float4 c;
+
+        public float3 this[int i]
+        {
+            get
+            {
+                switch (i)
+                {
+                    case 0:
+                        return new float3(a.x, a.y, a.z);
+                    case 1:
+                        return new float3(b.x, b.y, b.z);
+                    default:
+                        return new float3(c.x, c.y, c.z);
+                }
+            }
+        }
+    }

@@ -8,18 +8,19 @@ using Unity.Physics;
 [UpdateBefore(typeof(CharacterControllerSystem))]
 partial struct ChunkSpawnerSystem : ISystem
 {
-    EntityArchetype terrainChunkArchtype;
+    EntityArchetype minorChunkArchtype;
     EntityArchetype majorChunkArchtype;
 
     public void OnCreate(ref SystemState state)
     {
-        terrainChunkArchtype = state.EntityManager.CreateArchetype(
+        minorChunkArchtype = state.EntityManager.CreateArchetype(
             typeof(LocalTransform),
             typeof(Chunk),
             typeof(ChunkSleeping),
             typeof(ChunkRequestUpdate),
             typeof(PhysicsCollider),
-            typeof(PhysicsWorldIndex)
+            typeof(PhysicsWorldIndex),
+            typeof(EntityMeshRenderer)
         );
 
         majorChunkArchtype = state.EntityManager.CreateArchetype(
@@ -27,7 +28,8 @@ partial struct ChunkSpawnerSystem : ISystem
             typeof(MajorChunk),
             typeof(ChunkSleeping),
             typeof(ChunkRequestUpdate),
-            typeof(MajorChunkReady)
+            typeof(MajorChunkReady),
+            typeof(EntityMeshRenderer)
         );
     }
 
@@ -60,6 +62,7 @@ partial struct ChunkSpawnerSystem : ISystem
                 entityManager.SetComponentEnabled<ChunkSleeping>(currentEntity, true);
                 entityManager.SetComponentEnabled<ChunkRequestUpdate>(currentEntity, false);
                 entityManager.SetComponentEnabled<MajorChunkReady>(currentEntity, false);
+                entityManager.SetComponentEnabled<EntityMeshRenderer>(currentEntity, false);
 
                 chunkWorld.MajorChunkCurrentCount++;
             }
@@ -75,7 +78,7 @@ partial struct ChunkSpawnerSystem : ISystem
         {
             NativeArray<Entity> entities = new NativeArray<Entity>(chunkWorld.pooledChunkCount - chunkWorld.currentChunkCount, Allocator.Temp);
 
-            entityManager.CreateEntity(terrainChunkArchtype, entities);
+            entityManager.CreateEntity(minorChunkArchtype, entities);
 
             for (int i = 0; i < entities.Length; i++)
             {
@@ -84,6 +87,7 @@ partial struct ChunkSpawnerSystem : ISystem
                 entityManager.SetComponentData(currentEntity, LocalTransform.Identity);
                 entityManager.SetComponentEnabled<ChunkSleeping>(currentEntity, true);
                 entityManager.SetComponentEnabled<ChunkRequestUpdate>(currentEntity, false);
+                entityManager.SetComponentEnabled<EntityMeshRenderer>(currentEntity, false);
                 entityManager.SetComponentData(currentEntity, new Chunk
                 {
                     chunkPosition = new int3(100, 100, 100),

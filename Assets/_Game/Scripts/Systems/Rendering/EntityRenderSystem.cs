@@ -41,6 +41,8 @@ partial class EntityRenderSystem : SystemBase
             //     continue;
 
             var entityMeshRenderer = em.GetComponentData<EntityMeshRenderer>(renderable);
+            if(entityMeshRenderer.mesh == null) return;
+            
             var transform = em.GetComponentData<LocalTransform>(renderable);
             Graphics.RenderMesh(new RenderParams(terrainMaterial), entityMeshRenderer.mesh, 0, transform.ToMatrix());
         }
