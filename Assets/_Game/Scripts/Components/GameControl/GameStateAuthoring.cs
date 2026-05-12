@@ -14,10 +14,10 @@ class GameStateManagerBaker : Baker<GameStateAuthoring>
         var entity = GetEntity(TransformUsageFlags.None);
         AddComponent<GameState>(entity, new GameState
         {
-            chunkGenerationEnable = false,
-            playerControlEnable = false,
-            DEBUG_ChunkOutline = true,
-            DEBUG_MajorChunkOutline = true,
+            chunkGenerationEnable = true,
+            playerControlEnable = true,
+            DEBUG_ChunkOutline = false,
+            DEBUG_MajorChunkOutline = false,
             DEBUG_Heightmap = false
         });
     }

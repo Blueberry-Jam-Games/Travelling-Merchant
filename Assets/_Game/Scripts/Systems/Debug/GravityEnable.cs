@@ -9,20 +9,29 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SocialPlatforms;
 
-[UpdateAfter(typeof(CharacterControllerSystem))]
+[UpdateAfter(typeof(ChunkGeneratorSystem))]
 partial struct GravityEnable : ISystem
 {
     bool completed;
 
+    int cycles;
+
     public void OnCreate()
     {
         completed = false;
+        cycles = 0;
     }
     
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
         if (completed) return;
+
+        if(cycles <= 10)
+        {
+            cycles ++;
+            return;
+        }
 
         int chunkGeneratingCount = 0;
         foreach ((

@@ -53,7 +53,8 @@ partial struct ChunkSpawnerSystem : ISystem
                 entityManager.SetComponentData(currentEntity, LocalTransform.Identity);
                 entityManager.SetComponentData(currentEntity, new MajorChunk
                 {
-                    generationStep = -1
+                    generationStep = -1,
+                    chunkPosition = new int2(5, 5)
                 });
                 entityManager.SetName(currentEntity, "MajorChunk " + chunkWorld.MajorChunkCurrentCount);
                 entityManager.SetComponentEnabled<ChunkSleeping>(currentEntity, true);

@@ -18,7 +18,7 @@ public class HeightmapGenerator
         heightmapShader.SetInt("numPointsPerAxis", numPointsPerAxis);
         heightmapShader.SetFloat("chunkSize", dimensions);
         heightmapShader.SetFloat("scale", scale);
-        heightmapShader.SetFloat("worldHeight", 10);
+        heightmapShader.SetFloat("worldHeight", 200);
         heightmapShader.SetInt("seed", seed);
         heightmapShader.SetVector("corners", roughCorners);
         heightmapShader.SetVector("xgradients", xgradients);

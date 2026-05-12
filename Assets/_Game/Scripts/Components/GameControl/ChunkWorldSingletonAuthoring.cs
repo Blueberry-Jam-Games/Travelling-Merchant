@@ -38,7 +38,10 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             majorChunkRenderDistance = (int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) + 1,
 
             chunkSize = authoring.chunkCubeSize,
-            activeChunk = float3.zero,
+            activeMinorChunk = new int3(5, 5, 5),
+            activeMajorChunk = new int2(5, 5),
+            newMajorChunk = true,
+            newMinorChunk = true,
             numPointsPerAxis = authoring.numPointsPerAxis,
             isoLevel = authoring.isoLevel,
             boundsSize = authoring.boundsSize,
@@ -58,8 +61,11 @@ public struct ChunkWorldSingleton : IComponentData
     public int MinorPerMajorChunk; // Size of major chunk in units of Minor Chunks. Current default is 16. Change with caution. Major chunk lists may need to be increased in capacity and heightmap struct must be changed manually.
     public int majorChunkRenderDistance; // Amount of major chunks to be generated away from the player. Stored in units of Major chunk. TODO Revise to account for LoD
 
-    public float3 activeChunk;
+    public int3 activeMinorChunk;
     public int2 activeMajorChunk;
+    public bool newMajorChunk;
+    public bool newMinorChunk;
+
     public float isoLevel;
     public int chunkSize;
     public int numPointsPerAxis;

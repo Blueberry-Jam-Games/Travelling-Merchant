@@ -20,7 +20,7 @@ partial class ChunkMajorSetupSystem : SystemBase
         gradientMap = new ComputeBuffer(25 * 25, sizeof(float) * 2);
     }
 
-    protected override  void OnUpdate()
+    protected override void OnUpdate()
     {
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
         // Enable - Disable
@@ -29,7 +29,7 @@ partial class ChunkMajorSetupSystem : SystemBase
 
         foreach ((
             RefRW<MajorChunk> chunk,
-            _,
+            RefRO<ChunkRequestUpdate> update,
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<MajorChunk>,

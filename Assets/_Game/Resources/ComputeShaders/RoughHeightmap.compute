@@ -13,16 +13,16 @@ int seed;
 [numthreads(8,8,1)]
 void Heightmap(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x >= 25 || id.y >= 25)
+    if (id.x >= 24 || id.y >= 24)
         return;
 
     // Create and configure noise state
     fnl_state noise = fnlCreateState(seed);
     noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
 
-    uint index = id.y * 25 + id.x;
+    uint index = id.y * 24 + id.x;
 
-    float2 chunkBase = (float2)chunkPosition.xy * (float)minorPerMajorChunks;
+    float2 chunkBase = (float2)chunkPosition.xy * (float)minorPerMajorChunks + ((float)minorPerMajorChunks / 2);
 
     float2 pos = ((float2)id.xy + chunkBase) * scale;
 
