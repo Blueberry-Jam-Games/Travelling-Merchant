@@ -5,6 +5,10 @@ using Unity.Transforms;
 using UnityEngine;
 using Unity.Physics;
 using Unity.Collections;
+using System.Drawing;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.VisualScripting;
+using System.Collections.Generic;
 
 [UpdateInGroup(typeof(PresentationSystemGroup))]
 [BurstCompile(DisableDirectCall = true)]
@@ -12,10 +16,12 @@ partial class ChunkMeshSystem : SystemBase
 {
     UnityEngine.Material terrainMaterial;
     const int threadGroupSize = 8;
-    public ComputeShader shader;
+    public ComputeShader marchingCubeShader;
     public ComputeShader heightmapShader;
     public ComputeShader densityShader;
     public DensityGenerator densityGenerator;
+
+    List<ComputeContainer> computeContainers = new List<ComputeContainer>();
 
     ComputeBuffer heightmapBuffer;
 
@@ -32,16 +38,16 @@ partial class ChunkMeshSystem : SystemBase
 
     protected override void OnCreate()
     {
-        shader = Resources.Load<ComputeShader>("ComputeShaders/MarchingCubes");
+        marchingCubeShader = Resources.Load<ComputeShader>("ComputeShaders/MarchingCubes");
         heightmapShader = Resources.Load<ComputeShader>("ComputeShaders/MinorChunkHeightmap");
         densityShader = Resources.Load<ComputeShader>("ComputeShaders/DensityFromHeightmap");
         densityGenerator = new NoiseDensity();
         densityGenerator.densityShader = Resources.Load<ComputeShader>("ComputeShaders/NoiseDensity");
 
-        if (shader == null) Debug.LogError("Missing shader");
+        if (marchingCubeShader == null) Debug.LogError("Missing shader");
         if (densityGenerator.densityShader == null) Debug.LogError("Missing Density Shader");
 
-        if(shader != null)
+        if(marchingCubeShader != null)
         {
             cubeMarchArray = new ComputeBuffer(4096, sizeof(int), ComputeBufferType.Structured);
             cubeMarchArray.SetData(CubeMarchTriangulation.map);
@@ -57,6 +63,13 @@ partial class ChunkMeshSystem : SystemBase
     {
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
         terrainMaterial = Resources.Load<UnityEngine.Material>(chunkWorld.terrainMaterial.ToString());
+
+        // Create compute containers. These will hold the compute buffers while they are being read back
+        for(int i = 0; i < chunkWorld.DispatchableShaderCount; i++)
+        {
+            ComputeContainer newContainer = new ComputeContainer(chunkWorld.numPointsPerAxis, threadGroupSize, densityShader, marchingCubeShader);
+            computeContainers.Add(newContainer);
+        }
     }
 
     protected override void OnUpdate()
@@ -94,9 +107,9 @@ partial class ChunkMeshSystem : SystemBase
                 RefRW<PhysicsCollider>
                 >().WithEntityAccess())
         {
-            float4 heightmapCorners;
-            float4 xgradients;
-            float4 ygradients;
+            // float4 heightmapCorners;
+            // float4 xgradients;
+            // float4 ygradients;
             if(chunkGeneratorSystem.majorChunkExists(chunk.ValueRO.majorChunkPosition))
             {
                 Entity majorChunk = chunkGeneratorSystem.getMajorChunkEntity(chunk.ValueRO.majorChunkPosition);
@@ -108,16 +121,16 @@ partial class ChunkMeshSystem : SystemBase
                         continue;
                     }
 
-                    int2 chunkPosition = chunk.ValueRO.chunkPosition.xz;
-                    chunkPosition = chunkPosition % chunkWorld.MinorPerMajorChunk;
-                    if(chunkPosition.x < 0) chunkPosition.x += chunkWorld.MinorPerMajorChunk;
-                    if(chunkPosition.y < 0) chunkPosition.y += chunkWorld.MinorPerMajorChunk;
+                    // int2 chunkPosition = chunk.ValueRO.chunkPosition.xz;
+                    // chunkPosition = chunkPosition % chunkWorld.MinorPerMajorChunk;
+                    // if(chunkPosition.x < 0) chunkPosition.x += chunkWorld.MinorPerMajorChunk;
+                    // if(chunkPosition.y < 0) chunkPosition.y += chunkWorld.MinorPerMajorChunk;
 
-                    heightmapCorners = output.Quad(chunkPosition);
-                    xgradients = output.xgradients(chunkPosition);
-                    ygradients = output.ygradients(chunkPosition);
+                    // heightmapCorners = output.Quad(chunkPosition);
+                    // xgradients = output.xgradients(chunkPosition);
+                    // ygradients = output.ygradients(chunkPosition);
 
-                    heightmapper.Generate(ref heightmapBuffer, heightmapCorners, xgradients, ygradients, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
+                    // heightmapper.Generate(ref heightmapBuffer, heightmapCorners, xgradients, ygradients, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
 
                     //Density
                     int numPointsPerAxis = chunkWorld.numPointsPerAxis;
@@ -132,20 +145,20 @@ partial class ChunkMeshSystem : SystemBase
                     int3 coord = chunk.ValueRO.chunkPosition;
                     Vector3 centre = CornerFromCoords(coord, boundsSize);
 
-                    // densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
+                    densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
 
-                    densityFromHeightmapGenerator.Generate(ref heightmapBuffer, pointsBuffer, numPointsPerAxis, boundsSize, centre, pointSpacing, 1);
+                    // densityFromHeightmapGenerator.Generate(ref heightmapBuffer, pointsBuffer, numPointsPerAxis, boundsSize, centre, pointSpacing, 1);
 
-                    int marchKernel = shader.FindKernel("March");
+                    int marchKernel = marchingCubeShader.FindKernel("March");
 
-                    shader.SetBuffer(marchKernel, "points", pointsBuffer);
-                    shader.SetBuffer(marchKernel, "triangles", triangleBuffer);
+                    marchingCubeShader.SetBuffer(marchKernel, "points", pointsBuffer);
+                    marchingCubeShader.SetBuffer(marchKernel, "triangles", triangleBuffer);
                     triangleBuffer.SetCounterValue(0);
-                    shader.SetInt("numPointsPerAxis", numPointsPerAxis);
-                    shader.SetFloat("isoLevel", chunkWorld.isoLevel);
-                    shader.SetBuffer(marchKernel, "cubeMarchArray", cubeMarchArray);
+                    marchingCubeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
+                    marchingCubeShader.SetFloat("isoLevel", chunkWorld.isoLevel);
+                    marchingCubeShader.SetBuffer(marchKernel, "cubeMarchArray", cubeMarchArray);
 
-                    shader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+                    marchingCubeShader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
                     // Get number of triangles in the triangle buffer
                     ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
@@ -254,25 +267,136 @@ partial class ChunkMeshSystem : SystemBase
 }
 
 public struct Triangle
-    {
+{
 #pragma warning disable 649 // disable unassigned variable warning
-        public float4 a;
-        public float4 b;
-        public float4 c;
+    public float4 a;
+    public float4 b;
+    public float4 c;
 
-        public float3 this[int i]
+    public float3 this[int i]
+    {
+        get
         {
-            get
+            switch (i)
             {
-                switch (i)
-                {
-                    case 0:
-                        return new float3(a.x, a.y, a.z);
-                    case 1:
-                        return new float3(b.x, b.y, b.z);
-                    default:
-                        return new float3(c.x, c.y, c.z);
-                }
+                case 0:
+                    return new float3(a.x, a.y, a.z);
+                case 1:
+                    return new float3(b.x, b.y, b.z);
+                default:
+                    return new float3(c.x, c.y, c.z);
             }
         }
     }
+}
+
+public class ComputeContainer
+{
+    public GraphicsBuffer densityMap;
+    public GraphicsBuffer triangleBuffer;
+    public GraphicsBuffer pointBuffer;
+
+    private int numThreadsPerAxis;
+    private int numPointsPerAxis;
+    private int numPointsTotal;
+
+    ComputeShader DensityShader;
+    ComputeShader MarchingCubeShader;
+    ComputeShader CleanupShader;
+
+    Entity linkedChunk;
+
+    public MinorChunkProgress generationStep;
+
+    public enum MinorChunkProgress
+    {
+        CLEARED,
+        ASSIGNED,
+        GENERATING_DENSITY,
+        DENSITY_COMPLETE,
+        GENERATING_CUBE_MARCH,
+        CUBE_MARCH_COMPLETE,
+        GENERATING_OPTOMIZATION,
+        MESH_READY
+    }
+
+    public ComputeContainer(int numPointsPerAxis, int threadGroupSize, ComputeShader density, ComputeShader marchingCube)
+    {
+        numPointsTotal = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+        int numVoxelsPerAxis = numPointsPerAxis - 1;
+        int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
+        int maxTriangleCount = numVoxels * 5;
+
+        numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
+        this.numPointsPerAxis = numPointsPerAxis;
+
+
+        densityMap = new GraphicsBuffer(GraphicsBuffer.Target.Append, numPointsTotal, sizeof(float));
+        triangleBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Append, maxTriangleCount, UnsafeUtility.SizeOf<Triangle>());
+        pointBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Append, numVoxels, UnsafeUtility.SizeOf<float3>());
+
+        densityMap.SetCounterValue(0);
+        triangleBuffer.SetCounterValue(0);
+        pointBuffer.SetCounterValue(0);
+
+        linkedChunk = Entity.Null;
+
+        generationStep = MinorChunkProgress.CLEARED;
+
+        DensityShader = density;
+        MarchingCubeShader = marchingCube;
+    }
+
+    public void Prepare(Entity linkedChunkIn)
+    {
+        if(generationStep == MinorChunkProgress.CLEARED)
+        {
+            linkedChunk = linkedChunkIn;
+            generationStep = MinorChunkProgress.ASSIGNED;
+        }
+        else
+        {
+            Debug.LogWarning("Chunk not reset properly");
+        }
+    }
+
+    public void RunDensityShader(float3 position, float3 offset, float boundsSize)
+    {
+        if(generationStep != MinorChunkProgress.ASSIGNED)
+        {
+            Debug.LogWarning("Chunk was not assigned");
+        }
+
+        int densityKernal = DensityShader.FindKernel("Density");
+        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+        // Points buffer is populated inside shader with pos (xyz) + density (w).
+        // Set paramaters
+        DensityShader.SetBuffer (densityKernal, "points", pointBuffer);
+        DensityShader.SetInt ("numPointsPerAxis", numPointsPerAxis);
+        DensityShader.SetFloat ("boundsSize", boundsSize);
+        DensityShader.SetVector ("centre", new Vector4 (position.x, position.y, position.z));
+        DensityShader.SetVector ("offset", new Vector4 (offset.x, offset.y, offset.z));
+
+        float spacing = (float) boundsSize / (float) (numPointsPerAxis - 1);
+        DensityShader.SetFloat("spacing", spacing);
+
+        // Dispatch shader
+        DensityShader.Dispatch (densityKernal, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+
+        generationStep = MinorChunkProgress.DENSITY_COMPLETE;
+    }
+
+    public void Reset()
+    {
+        densityMap.SetCounterValue(0);
+        triangleBuffer.SetCounterValue(0);
+        pointBuffer.SetCounterValue(0);
+    }
+
+    public void Destroy()
+    {
+        densityMap.Release();
+        triangleBuffer.Release();
+        pointBuffer.Release();
+    }
+}

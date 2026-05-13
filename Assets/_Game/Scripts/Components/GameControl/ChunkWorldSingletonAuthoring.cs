@@ -46,10 +46,11 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             isoLevel = authoring.isoLevel,
             boundsSize = authoring.boundsSize,
             terrainMaterial = authoring.terrainMaterial,
+
+            DispatchableShaderCount = 4
         });
     }
 }
-
 public struct ChunkWorldSingleton : IComponentData
 {
     public int renderDistance;
@@ -57,6 +58,9 @@ public struct ChunkWorldSingleton : IComponentData
     public int currentChunkCount; // Actual number of minor chunk entities
     public int pooledMajorChunkCount; // Required amount of major chunk entities
     public int MajorChunkCurrentCount; // Actual number of major chunk entities
+
+    public int DispatchableShaderCount; // Count of dispatchable compute shaders can exist for chunks. Higher numbers allow more chunks to run at a time.
+
     public int MajorChunkSize; // Size of major chunk in Unity Units
     public int MinorPerMajorChunk; // Size of major chunk in units of Minor Chunks. Current default is 16. Change with caution. Major chunk lists may need to be increased in capacity and heightmap struct must be changed manually.
     public int majorChunkRenderDistance; // Amount of major chunks to be generated away from the player. Stored in units of Major chunk. TODO Revise to account for LoD
