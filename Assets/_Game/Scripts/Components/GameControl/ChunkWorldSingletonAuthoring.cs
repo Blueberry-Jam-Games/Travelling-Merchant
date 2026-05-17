@@ -37,6 +37,7 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             MinorPerMajorChunk = authoring.MinorPerMajorChunk,
             majorChunkRenderDistance = (int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) + 1,
 
+            octaves = 3,
             chunkSize = authoring.chunkCubeSize,
             activeMinorChunk = new int3(5, 5, 5),
             activeMajorChunk = new int2(5, 5),
@@ -70,6 +71,7 @@ public struct ChunkWorldSingleton : IComponentData
     public bool newMajorChunk;
     public bool newMinorChunk;
 
+    public int octaves;
     public float isoLevel;
     public int chunkSize;
     public int numPointsPerAxis;
