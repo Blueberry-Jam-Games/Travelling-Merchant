@@ -48,7 +48,7 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             boundsSize = authoring.boundsSize,
             terrainMaterial = authoring.terrainMaterial,
 
-            DispatchableShaderCount = 4
+            DispatchableShaderCount = 2
         });
     }
 }

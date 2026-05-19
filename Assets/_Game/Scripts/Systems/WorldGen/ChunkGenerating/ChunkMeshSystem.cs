@@ -237,7 +237,7 @@ partial class ChunkMeshSystem : SystemBase
             }
             
             RefRW<Chunk> chunk = chunkLookup.GetRefRW(chunkEntity);
-            
+
             RefRW<PhysicsCollider> physicsCollider = physicsColliderLookup.GetRefRW(chunkEntity);
 
             if(container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
@@ -297,10 +297,12 @@ partial class ChunkMeshSystem : SystemBase
 
                 ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
 
+                SystemAPI.SetComponentEnabled<ChunkRequestPhysics>(chunkEntity, true);
+
                 if (physicsCollider.ValueRW.Value.IsCreated)
                     physicsCollider.ValueRW.Value.Dispose();
 
-                physicsCollider.ValueRW.Value = Unity.Physics.MeshCollider.Create(mesh, CollisionFilter.Default, Unity.Physics.Material.Default);
+                // physicsCollider.ValueRW.Value = Unity.Physics.MeshCollider.Create(mesh, CollisionFilter.Default, Unity.Physics.Material.Default);
             }
 
             // // Get number of triangles in the triangle buffer

@@ -18,6 +18,7 @@ partial struct ChunkSpawnerSystem : ISystem
             typeof(Chunk),
             typeof(ChunkSleeping),
             typeof(ChunkRequestUpdate),
+            typeof(ChunkRequestPhysics),
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
             typeof(EntityMeshRenderer)
@@ -88,6 +89,7 @@ partial struct ChunkSpawnerSystem : ISystem
                 entityManager.SetComponentEnabled<ChunkSleeping>(currentEntity, true);
                 entityManager.SetComponentEnabled<ChunkRequestUpdate>(currentEntity, false);
                 entityManager.SetComponentEnabled<EntityMeshRenderer>(currentEntity, false);
+                entityManager.SetComponentEnabled<ChunkRequestPhysics>(currentEntity, false);
                 entityManager.SetComponentData(currentEntity, new Chunk
                 {
                     chunkPosition = new int3(100, 100, 100),
