@@ -14,43 +14,23 @@ partial class ChunkMeshSystem : SystemBase
 {
     UnityEngine.Material terrainMaterial;
     const int threadGroupSize = 8;
-    public ComputeShader meshGenerator; // New mesh system
-    public ComputeShader marchingCubeShader;
-    public ComputeShader heightmapShader;
-    public ComputeShader densityShader;
-    public DensityGenerator densityGenerator;
+    public ComputeShader meshGenerator;
 
     List<ComputeContainer> computeContainers = new List<ComputeContainer>();
-
-    ComputeBuffer heightmapBuffer;
-
-    ComputeBuffer triangleBuffer;
-    ComputeBuffer pointsBuffer;
-    ComputeBuffer triCountBuffer;
 
     ComputeBuffer cubeMarchArray;
 
     ComponentLookup<MajorChunk> majorChunkLookup;
-    
-    ComponentLookup<Chunk> chunkLookup; // New Code
-    ComponentLookup<PhysicsCollider> physicsColliderLookup; // New Code
-
-    HeightmapGenerator heightmapper;
-    DensityFromHeightmapGenerator densityFromHeightmapGenerator;
+    ComponentLookup<Chunk> chunkLookup;
+    ComponentLookup<PhysicsCollider> physicsColliderLookup;
 
     protected override void OnCreate()
     {
-        marchingCubeShader = Resources.Load<ComputeShader>("ComputeShaders/MarchingCubes");
-        heightmapShader = Resources.Load<ComputeShader>("ComputeShaders/MinorChunkHeightmap");
-        densityShader = Resources.Load<ComputeShader>("ComputeShaders/DensityFromHeightmap");
         meshGenerator = Resources.Load<ComputeShader>("ComputeShaders/MeshGeneration"); // New Shader
-
-        if (marchingCubeShader == null) Debug.LogError("Missing shader"); // Old
-        //if (densityGenerator.densityShader == null) Debug.LogError("Missing Density Shader"); // Old
 
         if (meshGenerator == null) Debug.LogError("Missing Mesh Generation Shader File");
 
-        if(meshGenerator != null)
+        if (meshGenerator != null)
         {
             cubeMarchArray = new ComputeBuffer(4096, sizeof(int), ComputeBufferType.Structured);
             cubeMarchArray.SetData(CubeMarchTriangulation.map);
@@ -63,9 +43,6 @@ partial class ChunkMeshSystem : SystemBase
 
         chunkLookup = GetComponentLookup<Chunk>(false);
         physicsColliderLookup = GetComponentLookup<PhysicsCollider>(false);
-
-        //heightmapper = new HeightmapGenerator(heightmapShader);
-        //densityFromHeightmapGenerator = new DensityFromHeightmapGenerator(densityShader);
     }
 
     protected override void OnStartRunning()
@@ -90,12 +67,6 @@ partial class ChunkMeshSystem : SystemBase
         if (terrainMaterial == null) return;
 
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
-        Entity chunkWorldEntity = SystemAPI.GetSingletonEntity<ChunkWorldSingleton>();
-
-        if(pointsBuffer == null || triangleBuffer == null || triCountBuffer == null || heightmapBuffer == null)
-        {
-            CreateBuffers(chunkWorld.numPointsPerAxis);
-        }
 
         // Access list of major chunks
         ref ChunkGeneratorSystem chunkGeneratorSystem = ref World.Unmanaged.GetUnsafeSystemRef<ChunkGeneratorSystem>(World.Unmanaged.GetExistingUnmanagedSystem<ChunkGeneratorSystem>());
@@ -119,9 +90,6 @@ partial class ChunkMeshSystem : SystemBase
                 RefRW<PhysicsCollider>
                 >().WithEntityAccess())
         {
-            // float4 heightmapCorners;
-            // float4 xgradients;
-            // float4 ygradients;
             if(chunkGeneratorSystem.majorChunkExists(chunk.ValueRO.majorChunkPosition))
             {
                 Entity majorChunk = chunkGeneratorSystem.getMajorChunkEntity(chunk.ValueRO.majorChunkPosition);
@@ -132,45 +100,6 @@ partial class ChunkMeshSystem : SystemBase
                         Debug.LogError("No Component");
                         continue;
                     }
-
-                    // int2 chunkPosition = chunk.ValueRO.chunkPosition.xz;
-                    // chunkPosition = chunkPosition % chunkWorld.MinorPerMajorChunk;
-                    // if(chunkPosition.x < 0) chunkPosition.x += chunkWorld.MinorPerMajorChunk;
-                    // if(chunkPosition.y < 0) chunkPosition.y += chunkWorld.MinorPerMajorChunk;
-
-                    // heightmapCorners = output.Quad(chunkPosition);
-                    // xgradients = output.xgradients(chunkPosition);
-                    // ygradients = output.ygradients(chunkPosition);
-
-                    // heightmapper.Generate(ref heightmapBuffer, heightmapCorners, xgradients, ygradients, chunkWorld.numPointsPerAxis, chunkWorld.chunkSize, chunk.ValueRO.chunkPosition, 1, 1);
-
-                    // //Density
-                    // int numPointsPerAxis = chunkWorld.numPointsPerAxis;
-                    // int boundsSize = chunkWorld.chunkSize;
-                    // Vector4 offset = Vector4.zero;
-
-                    // // Imported
-                    // int numVoxelsPerAxis = numPointsPerAxis - 1;
-                    // int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
-                    // float pointSpacing = (float) boundsSize / (float) (numPointsPerAxis - 1);
-
-                    // int3 coord = chunk.ValueRO.chunkPosition;
-                    // Vector3 centre = CornerFromCoords(coord, boundsSize);
-
-                    // densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, centre, offset, pointSpacing);
-
-                    // densityFromHeightmapGenerator.Generate(ref heightmapBuffer, pointsBuffer, numPointsPerAxis, boundsSize, centre, pointSpacing, 1);
-
-                    // int marchKernel = marchingCubeShader.FindKernel("March");
-
-                    // marchingCubeShader.SetBuffer(marchKernel, "points", pointsBuffer);
-                    // marchingCubeShader.SetBuffer(marchKernel, "triangles", triangleBuffer);
-                    // triangleBuffer.SetCounterValue(0);
-                    // marchingCubeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-                    // marchingCubeShader.SetFloat("isoLevel", chunkWorld.isoLevel);
-                    // marchingCubeShader.SetBuffer(marchKernel, "cubeMarchArray", cubeMarchArray);
-
-                    // marchingCubeShader.Dispatch(marchKernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
                     bool computeShadersOccupied = true;
                     foreach(ComputeContainer container in computeContainers)
@@ -263,6 +192,11 @@ partial class ChunkMeshSystem : SystemBase
 
                 NativeArray<Triangle> tris = container.readbackRequest.GetData<Triangle>();
 
+                if(chunk.ValueRO.meshBlob.IsCreated)
+                {
+                    chunk.ValueRW.meshBlob.Dispose();
+                }
+
                 BlobAssetReference<MeshBlob> blob = MeshBlobUtility.CreateMeshBlob(tris, tris.Length);
 
                 chunk.ValueRW.meshBlob = blob;
@@ -301,47 +235,7 @@ partial class ChunkMeshSystem : SystemBase
 
                 if (physicsCollider.ValueRW.Value.IsCreated)
                     physicsCollider.ValueRW.Value.Dispose();
-
-                // physicsCollider.ValueRW.Value = Unity.Physics.MeshCollider.Create(mesh, CollisionFilter.Default, Unity.Physics.Material.Default);
             }
-
-            // // Get number of triangles in the triangle buffer
-            // ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
-            // int[] triCountArray = { 0 };
-            // triCountBuffer.GetData(triCountArray);
-            // int numTris = triCountArray[0];
-
-            // if(numTris == 0)
-            // {
-            //     ChunkMeshManagerSystem.Instance.SetMesh(new Mesh(), chunk.ValueRO.meshIndex);
-
-            //     if (physicsCollider.ValueRW.Value.IsCreated)
-            //         physicsCollider.ValueRW.Value.Dispose();
-
-            //     continue;
-            // }
-
-            // // Get triangle data from shader
-            // Triangle[] tris = new Triangle[numTris];
-            // triangleBuffer.GetData(tris, 0, 0, numTris);
-
-            // Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
-            // mesh.Clear();
-
-            // //chunk.ValueRW.mesh = MeshBlobUtility.CreateMeshBlob(tris)
-
-            // // Move data into arrays. * 3 used for 3 verticies per face 
-            // var vertices = new Vector3[numTris * 3];
-            // var meshTriangles = new int[numTris * 3];
-
-            // for (int i = 0; i < numTris; i++)
-            // {
-            //     for (int j = 0; j < 3; j++)
-            //     {
-            //         meshTriangles[i * 3 + j] = i * 3 + j;
-            //         vertices[i * 3 + j] = tris[i][j];
-            //     }
-            // }
         }
 
         foreach (var (chunk, transform, entity) in SystemAPI.Query<RefRO<Chunk>, RefRO<LocalTransform>>().WithNone<ChunkSleeping>().WithEntityAccess())
@@ -359,38 +253,6 @@ partial class ChunkMeshSystem : SystemBase
 
             Graphics.RenderMesh(new RenderParams(terrainMaterial), ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex), 0, transform.ValueRO.ToMatrix());
         }
-    }
-
-    float3 CornerFromCoords(int3 coord, float boundsSize)
-    {
-
-        return new float3(coord.x, coord.y, coord.z) * boundsSize;
-    }
-
-    void CreateBuffers(int numPointsPerAxis)
-    {
-        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-        int numVoxelsPerAxis = numPointsPerAxis - 1;
-        int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
-        int maxTriangleCount = numVoxels * 5;
-
-        triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 4 * 3, ComputeBufferType.Append);
-        pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
-        triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
-        heightmapBuffer = new ComputeBuffer(numPointsPerAxis * numPointsPerAxis, sizeof(float));
-    }
-
-
-    protected override void OnDestroy()
-    {
-        if(triangleBuffer.IsValid())
-        {
-            triangleBuffer.Dispose();
-            pointsBuffer.Dispose();
-            triCountBuffer.Dispose();
-            heightmapBuffer.Dispose();
-        }
-        base.OnDestroy();
     }
 }
 
@@ -516,12 +378,12 @@ public class ComputeContainer
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
         // Points buffer is populated inside shader with pos (xyz) + density (w).
         // Set paramaters
-        int octaves = 3;
+        int octaves = 4;
 
         float lacunarity = 1.0f;
         float persistence = 0.3f;
 
-        float noiseScale = 0.1f;
+        float noiseScale = 0.2f;
 
         float noiseWeight = 7.0f;
 

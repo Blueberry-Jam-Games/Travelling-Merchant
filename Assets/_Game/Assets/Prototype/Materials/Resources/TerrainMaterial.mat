@@ -223,7 +223,7 @@ Material:
     - _Noise_Scale: 2.32
     - _Noise_Weight: 1.26
     - _NormalMapSpace: 0
-    - _NormalScale: 0.09
+    - _NormalScale: 0.05
     - _ObjectSpaceUVMapping: 0
     - _ObjectSpaceUVMappingEmissive: 0
     - _OpaqueCullMode: 2
@@ -260,6 +260,7 @@ Material:
     - _SubsurfaceMask: 1
     - _SupportDecals: 1
     - _SurfaceType: 0
+    - _Terrain_Falloff: -0.1
     - _TexWorldScale: 1
     - _TexWorldScaleEmissive: 1
     - _Thickness: 1

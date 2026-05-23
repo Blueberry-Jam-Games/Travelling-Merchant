@@ -773,8 +773,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82356945e808078478a2a0f3474d5c2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  renderDistance: 6
-  chunkCubeSize: 32
+  renderDistance: 10
+  chunkCubeSize: 64
   MinorPerMajorChunk: 24
   isoLevel: 0
   numPointsPerAxis: 33
