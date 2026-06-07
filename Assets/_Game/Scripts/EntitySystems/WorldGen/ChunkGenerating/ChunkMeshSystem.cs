@@ -345,7 +345,7 @@ public class ComputeContainer
 
         RunCubeMarch(meshGenerator, chunkWorld.isoLevel);
 
-        Debug.Log("Mesh Generation Completed");
+        //Debug.Log("Mesh Generation Completed");
         generationStep = MinorChunkProgress.MESH_GENERATED;
 
         BeginReadback();

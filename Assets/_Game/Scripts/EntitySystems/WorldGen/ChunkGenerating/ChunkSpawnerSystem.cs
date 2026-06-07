@@ -36,6 +36,8 @@ partial struct ChunkSpawnerSystem : ISystem
 
     public void OnUpdate(ref SystemState state)
     {
+        return;
+
         if (!SystemAPI.HasSingleton<ChunkWorldSingleton>()) return;
 
         EntityManager entityManager = state.EntityManager;

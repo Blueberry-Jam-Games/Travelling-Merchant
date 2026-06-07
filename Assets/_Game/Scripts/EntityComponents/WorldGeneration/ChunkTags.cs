@@ -22,3 +22,8 @@ public struct MajorChunkReady : IComponentData, IEnableableComponent
 {
     
 }
+
+public struct ChunkGenerationComplete : IComponentData, IEnableableComponent
+{
+    
+}

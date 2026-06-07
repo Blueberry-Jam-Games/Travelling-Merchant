@@ -32,6 +32,7 @@ partial class EntityRenderSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        return;
         using var renderableEntities = _renderable.ToEntityArray(Allocator.Temp);
         var em = EntityManager;
 
