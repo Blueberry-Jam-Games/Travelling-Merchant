@@ -47,20 +47,21 @@ public class ChunkSpawningManager : MonoBehaviour
         // Build archetypes
         var majorArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
-            typeof(MajorChunk),
             typeof(ChunkSleeping),
             typeof(ChunkRequestUpdate),
             typeof(MajorChunkReady),
-            typeof(EntityMeshRenderer)
+            typeof(ChunkT), // TODO Change to CHUNK
+            typeof(MajorChunk),
+            typeof(ChunkGenerationComplete)
         );
 
         var mediumArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
-            //typeof(Chunk),
             typeof(ChunkSleeping),
             typeof(ChunkRequestUpdate),
-            typeof(ChunkRequestPhysics),
-            typeof(EntityMeshRenderer)
+            typeof(ChunkT), // TODO Change to CHUNK
+            typeof(MediumChunk),
+            typeof(ChunkGenerationComplete)
         );
 
         var minorArchtype = entityManager.CreateArchetype(
@@ -71,7 +72,9 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(ChunkRequestPhysics),
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
-            typeof(EntityMeshRenderer)
+            typeof(ChunkT), // TODO Change to CHUNK
+            typeof(MinorChunk),
+            typeof(ChunkGenerationComplete)
         );
 
         // Create prototypes
@@ -172,6 +175,19 @@ public class ChunkSpawningManager : MonoBehaviour
                     chunkPosition = new int3(100, 100, 100),
                     meshIndex = meshIndexes[index]
                 });
+                ECB.SetName(index, e, "Minor Chunk");
+            }
+            else if(chunkType == ChunkArchtype.MEDIUM)
+            {
+                ECB.SetComponent(index, e, new MediumChunk
+                {
+                    mediumChunkMirror = mediumChunkMirrorArray[index]
+                });
+                ECB.SetName(index, e, "MediumChunk");
+            }
+            else if(chunkType == ChunkArchtype.MAJOR)
+            {
+                ECB.SetName(index, e, "MajorChunk");
             }
         }
     }
