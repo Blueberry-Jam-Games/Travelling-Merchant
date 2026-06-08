@@ -10,14 +10,22 @@ public class MediumChunkMirror : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        TerrainLOD0 = new Mesh();
-        TerrainLOD0.name = "LOD-0";
-        TerrainLOD1 = new Mesh();
-        TerrainLOD1.name = "LOD-1";
-        TerrainLOD2 = new Mesh();
-        TerrainLOD2.name = "LOD-2";
-        TerrainLOD3 = new Mesh();
-        TerrainLOD3.name = "LOD-3";
+        TerrainLOD0 = new Mesh
+        {
+            name = "LOD-0"
+        };
+        TerrainLOD1 = new Mesh
+        {
+            name = "LOD-1"
+        };
+        TerrainLOD2 = new Mesh
+        {
+            name = "LOD-2"
+        };
+        TerrainLOD3 = new Mesh
+        {
+            name = "LOD-3"
+        };
 
         MeshFilter[] LODFilters = transform.GetComponentsInChildren<MeshFilter>();
 

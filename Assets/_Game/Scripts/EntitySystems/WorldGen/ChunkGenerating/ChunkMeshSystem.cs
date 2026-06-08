@@ -8,7 +8,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using System.Collections.Generic;
 using Unity.Collections;
 
-[UpdateInGroup(typeof(PresentationSystemGroup))]
+[UpdateInGroup(typeof(WorldGenerationSystemGroup))]
+[UpdateAfter(typeof(ChunkGeneratorSystem))]
 [BurstCompile(DisableDirectCall = true)]
 partial class ChunkMeshSystem : SystemBase
 {

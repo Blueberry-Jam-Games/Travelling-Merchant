@@ -27,3 +27,8 @@ public struct ChunkGenerationComplete : IComponentData, IEnableableComponent
 {
     
 }
+
+public struct ChunkActive : IComponentData, IEnableableComponent
+{
+    
+}

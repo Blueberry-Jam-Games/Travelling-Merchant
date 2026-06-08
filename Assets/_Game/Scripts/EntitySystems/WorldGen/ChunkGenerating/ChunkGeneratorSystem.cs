@@ -3,24 +3,21 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using Unity.Collections;
-using Unity.Physics;
-using System.Runtime.CompilerServices;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using System.Linq;
 
 
 [UpdateAfter(typeof(ChunkSpawnerSystem))]
 partial struct ChunkGeneratorSystem : ISystem
 {
     private NativeParallelHashMap<int3, Entity> minorChunkMap;
+    private NativeParallelHashMap<int2, Entity> mediumChunkMap;
     private NativeParallelHashMap<int2, Entity> majorChunkMap;
 
     public void OnCreate(ref SystemState state)
     {
         minorChunkMap = new NativeParallelHashMap<int3, Entity>(capacity: 1024, Allocator.Persistent);
         majorChunkMap = new NativeParallelHashMap<int2, Entity>(capacity: 128, Allocator.Persistent);
+        mediumChunkMap = new NativeParallelHashMap<int2, Entity>(capacity: 1024, Allocator.Persistent);
     }
 
     public void OnUpdate(ref SystemState state)

@@ -22,6 +22,12 @@ public struct MediumChunk : IComponentData
     public UnityObjectRef<MediumChunkMirror> mediumChunkMirror;
 }
 
+public struct RequestedMinorChunkData : IBufferElementData
+{
+    public int3 position;
+    public bool placed;
+}
+
 public struct MajorChunkT : IComponentData
 {
     
