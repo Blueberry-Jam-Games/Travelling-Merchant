@@ -95,7 +95,6 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentData(minorPrototype, LocalTransform.Identity);
         entityManager.SetComponentEnabled<ChunkSleeping>(minorPrototype, true);
         entityManager.SetComponentEnabled<ChunkRequestUpdate>(minorPrototype, false);
-        entityManager.SetComponentEnabled<EntityMeshRenderer>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
