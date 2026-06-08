@@ -9,7 +9,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SocialPlatforms;
 
-[UpdateAfter(typeof(ChunkGeneratorSystem))]
+[UpdateInGroup(typeof(WorldGenerationSystemGroup))]
+[UpdateAfter(typeof(ChunkMeshSystem))]
 partial struct GravityEnable : ISystem
 {
     bool completed;

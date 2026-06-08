@@ -10,8 +10,8 @@ using Unity.VisualScripting;
 using UnityEngine;
 using System.Linq;
 
-
-[UpdateBefore(typeof(ChunkGeneratorSystem))]
+[UpdateInGroup(typeof(WorldGenerationSystemGroup))]
+[UpdateBefore(typeof(ChunkPlacementSystem))]
 partial struct CharacterChunkTrackingSystem : ISystem
 {
     public void OnCreate(ref SystemState state)

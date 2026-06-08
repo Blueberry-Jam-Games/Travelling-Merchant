@@ -216,33 +216,27 @@ public class ChunkSpawningManager : MonoBehaviour
         if (delta > 0)
         {
             currentMajorChunkCount = targetMajorChunkCount;
-            return new SpawnJob
+            
+            NativeArray<UnityObjectRef<MediumChunkMirror>> mediumChunkMirrors = new NativeArray<UnityObjectRef<MediumChunkMirror>>(0, Allocator.TempJob);
+            NativeArray<int> newMeshIndexes = new NativeArray<int>(0, Allocator.TempJob);
+
+            JobHandle handle = new SpawnJob
             {
                 Prototype = majorPrototype,
                 ECB = ecbMajorChunk,
                 chunkType = SpawnJob.ChunkArchtype.MAJOR,
-                meshIndexes = new NativeArray<int>(0, Allocator.TempJob),
-                mediumChunkMirrorArray = new NativeArray<UnityObjectRef<MediumChunkMirror>>(0, Allocator.TempJob) // Empty Array
+                meshIndexes = newMeshIndexes,
+                mediumChunkMirrorArray = mediumChunkMirrors
             }.Schedule(delta, 64);
+
+            newMeshIndexes.Dispose(handle);
+            mediumChunkMirrors.Dispose(handle);
+
+            return handle;
         }
         else if (delta < 0)
         {
-            // int removeCount = -delta;
-
-            // var entities = new NativeArray<Entity>(removeCount, Allocator.TempJob);
-
-            // FillEntityArray(ref entities, majorPrototype, removeCount);
-
-            // JobHandle handle = new DestroyJob
-            // {
-            //     Entities = entities,
-            //     ECB = ecbMajorChunk
-            // }.Schedule(removeCount, 64);
-
-            // currentMajorChunkCount -= removeCount;
-
-            // entities.Dispose(handle);
-            // return handle;
+            
         }
 
         return default;
@@ -261,39 +255,30 @@ public class ChunkSpawningManager : MonoBehaviour
             currentMediumChunkCount = targetMediumChunkCount;
 
             NativeArray<UnityObjectRef<MediumChunkMirror>> mediumChunkMirrors = new NativeArray<UnityObjectRef<MediumChunkMirror>>(delta, Allocator.TempJob);
+            NativeArray<int> newMeshIndexes = new NativeArray<int>(0, Allocator.TempJob);
 
             for(int i = 0; i < delta; i++)
             {
                 mediumChunkMirrors[i] = Instantiate(MediumChunkPrefab).GetComponent<MediumChunkMirror>();
             }
 
-            return new SpawnJob
+            JobHandle handle = new SpawnJob
             {
                 Prototype = mediumPrototype,
                 ECB = ecbMediumChunk,
                 chunkType = SpawnJob.ChunkArchtype.MEDIUM,
-                meshIndexes = new NativeArray<int>(0, Allocator.TempJob),
+                meshIndexes = newMeshIndexes,
                 mediumChunkMirrorArray = mediumChunkMirrors
             }.Schedule(delta, 64);
+
+            newMeshIndexes.Dispose(handle);
+            mediumChunkMirrors.Dispose(handle);
+
+            return handle;
         }
         else if (delta < 0)
         {
-            // int removeCount = -delta;
-
-            // var entities = new NativeArray<Entity>(removeCount, Allocator.TempJob);
-            // FillEntityArray(ref entities, mediumPrototype, removeCount);
-
-            // JobHandle handle = new DestroyJob
-            // {
-            //     Entities = entities,
-            //     ECB = ecbMediumChunk
-            // }.Schedule(removeCount, 64);
-
-            // entities.Dispose(handle);
-
-            // currentMediumChunkCount -= removeCount;
-
-            // return handle;
+            
         }
 
         return default;
@@ -310,6 +295,7 @@ public class ChunkSpawningManager : MonoBehaviour
         {
             currentMinorChunkCount = targetMinorChunkCount;
 
+            NativeArray<UnityObjectRef<MediumChunkMirror>> mediumChunkMirrors = new NativeArray<UnityObjectRef<MediumChunkMirror>>(0, Allocator.TempJob);
             NativeArray<int> newMeshIndexes = new NativeArray<int>(delta, Allocator.TempJob);
 
             for(int i = 0; i < newMeshIndexes.Length; i++)
@@ -317,33 +303,23 @@ public class ChunkSpawningManager : MonoBehaviour
                 newMeshIndexes[i] = ChunkMeshManagerSystem.Instance.CreateEmptyMesh();
             }
             
-            return new SpawnJob
+            JobHandle handle = new SpawnJob
             {
                 Prototype = minorPrototype,
                 ECB = ecbMinorChunk,
                 chunkType = SpawnJob.ChunkArchtype.MINOR,
                 meshIndexes = newMeshIndexes,
-                mediumChunkMirrorArray = new NativeArray<UnityObjectRef<MediumChunkMirror>>(0, Allocator.TempJob)
+                mediumChunkMirrorArray = mediumChunkMirrors
             }.Schedule(delta, 64);
+
+            newMeshIndexes.Dispose(handle);
+            mediumChunkMirrors.Dispose(handle);
+
+            return handle;
         }
         else if (delta < 0)
         {
-            // int removeCount = -delta;
 
-            // var entities = new NativeArray<Entity>(removeCount, Allocator.TempJob);
-
-            // FillEntityArray(ref entities, minorPrototype, removeCount);
-
-            // JobHandle handle = new DestroyJob
-            // {
-            //     Entities = entities,
-            //     ECB = ecbMinorChunk
-            // }.Schedule(removeCount, 64);
-
-            // currentMinorChunkCount -= removeCount;
-
-            // entities.Dispose(handle);
-            // return handle;
         }
 
         return default;

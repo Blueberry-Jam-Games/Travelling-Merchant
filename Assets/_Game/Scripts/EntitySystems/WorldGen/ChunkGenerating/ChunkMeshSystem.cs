@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
-[UpdateAfter(typeof(ChunkGeneratorSystem))]
+[UpdateAfter(typeof(ChunkPlacementSystem))]
 [BurstCompile(DisableDirectCall = true)]
 partial class ChunkMeshSystem : SystemBase
 {
@@ -70,7 +70,7 @@ partial class ChunkMeshSystem : SystemBase
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
 
         // Access list of major chunks
-        ref ChunkGeneratorSystem chunkGeneratorSystem = ref World.Unmanaged.GetUnsafeSystemRef<ChunkGeneratorSystem>(World.Unmanaged.GetExistingUnmanagedSystem<ChunkGeneratorSystem>());
+        ref ChunkPlacementSystem chunkGeneratorSystem = ref World.Unmanaged.GetUnsafeSystemRef<ChunkPlacementSystem>(World.Unmanaged.GetExistingUnmanagedSystem<ChunkPlacementSystem>());
 
         majorChunkLookup.Update(this);
 

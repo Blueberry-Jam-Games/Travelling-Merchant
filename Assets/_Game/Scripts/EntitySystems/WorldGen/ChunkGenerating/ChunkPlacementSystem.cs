@@ -6,8 +6,8 @@ using Unity.Collections;
 using UnityEngine;
 
 
-[UpdateAfter(typeof(ChunkSpawnerSystem))]
-partial struct ChunkGeneratorSystem : ISystem
+[UpdateInGroup(typeof(WorldGenerationSystemGroup))]
+partial struct ChunkPlacementSystem : ISystem
 {
     private NativeParallelHashMap<int3, Entity> minorChunkMap;
     private NativeParallelHashMap<int2, Entity> mediumChunkMap;
