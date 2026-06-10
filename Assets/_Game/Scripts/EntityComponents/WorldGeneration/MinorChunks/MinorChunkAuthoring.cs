@@ -19,7 +19,7 @@ class MinorChunkAuthoringBaker : Baker<MinorChunkAuthoring>
     }
 }
 
-public struct Chunk : IComponentData
+public struct ChunkO : IComponentData
 {
     public int2 majorChunkPosition;
     public Entity majorChunk;

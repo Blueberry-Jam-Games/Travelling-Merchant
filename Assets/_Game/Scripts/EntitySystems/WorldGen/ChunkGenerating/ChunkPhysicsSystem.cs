@@ -5,6 +5,8 @@ using Unity.Mathematics;
 using Unity.Physics;
 
 [BurstCompile]
+[UpdateInGroup(typeof(WorldGenerationSystemGroup))]
+[UpdateAfter(typeof(ChunkMeshSystem))]
 public partial struct ChunkPhysicsBuildSystem : ISystem
 {
     [BurstCompile]
@@ -37,13 +39,13 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
 
         private void Execute(
             ref PhysicsCollider physicsCollider,
-            ref Chunk chunk,
+            ref MinorChunk chunk,
             EnabledRefRW<ChunkRequestPhysics> requestPhysics)
         {
-            if (!chunk.meshBlob.IsCreated)
+            if (!chunk.meshBlobHighDetail.IsCreated)
                 return;
 
-            ref MeshBlob meshBlob = ref chunk.meshBlob.Value;
+            ref MeshBlob meshBlob = ref chunk.meshBlobHighDetail.Value;
 
             // Convert blob arrays into temporary native arrays
             NativeArray<float3> vertices =

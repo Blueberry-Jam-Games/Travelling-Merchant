@@ -4,7 +4,8 @@ using UnityEngine;
 
 class GameStateAuthoring : MonoBehaviour
 {
-    
+    public bool majorChunkOutline = false;
+    public bool mediumChunkOutline = false;
 }
 
 class GameStateManagerBaker : Baker<GameStateAuthoring>
@@ -16,8 +17,9 @@ class GameStateManagerBaker : Baker<GameStateAuthoring>
         {
             chunkGenerationEnable = true,
             playerControlEnable = true,
-            DEBUG_ChunkOutline = false,
-            DEBUG_MajorChunkOutline = false,
+            // DEBUG_ChunkOutline = false,
+            DEBUG_MajorChunkOutline = authoring.majorChunkOutline,
+            DEBUG_MediumChunkOutline = authoring.mediumChunkOutline,
             DEBUG_Heightmap = false
         });
     }
@@ -27,7 +29,8 @@ public struct GameState : IComponentData
 {
     public bool chunkGenerationEnable;
     public bool playerControlEnable;
-    public bool DEBUG_ChunkOutline;
+    // public bool DEBUG_ChunkOutline;
     public bool DEBUG_MajorChunkOutline;
+    public bool DEBUG_MediumChunkOutline;
     public bool DEBUG_Heightmap;
 }

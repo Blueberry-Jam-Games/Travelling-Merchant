@@ -14,11 +14,6 @@ using System.Linq;
 [UpdateBefore(typeof(ChunkPlacementSystem))]
 partial struct CharacterChunkTrackingSystem : ISystem
 {
-    public void OnCreate(ref SystemState state)
-    {
-        
-    }
-
     public void OnUpdate(ref SystemState state)
     {
         if (!SystemAPI.HasSingleton<ChunkWorldSingleton>()) return;
@@ -28,20 +23,37 @@ partial struct CharacterChunkTrackingSystem : ISystem
         LocalTransform playerTransform = SystemAPI.GetComponent<LocalTransform>(player);
 
         int2 playerMajorChunk = new int2(
-            (int)math.floor(playerTransform.Position.x / chunkWorld.MajorChunkSize),
-            (int)math.floor(playerTransform.Position.z / chunkWorld.MajorChunkSize)
+            (int)math.floor(playerTransform.Position.x / chunkWorld.majorChunkSize),
+            (int)math.floor(playerTransform.Position.z / chunkWorld.majorChunkSize)
         );
         
         if(math.any(playerMajorChunk != chunkWorld.activeMajorChunk))
         {
-            chunkWorld.newMajorChunk = true;
+            chunkWorld.newMajorChunkOccupied = true;
             chunkWorld.activeMajorChunk = playerMajorChunk;
         }
         else
         {
-            chunkWorld.newMajorChunk = false;
+            chunkWorld.newMajorChunkOccupied = false;
         }
 
+        // Medium Chunk Placement
+        int2 playerMediumChunk = new int2(
+            (int)math.floor(playerTransform.Position.x / chunkWorld.mediumChunkSize),
+            (int)math.floor(playerTransform.Position.z / chunkWorld.mediumChunkSize)
+        );
+
+        if (math.any(playerMediumChunk != chunkWorld.activeMediumChunk))
+        {
+            chunkWorld.newMediumChunkOccupied = true;
+            chunkWorld.activeMediumChunk = playerMediumChunk;
+        }
+        else
+        {
+            chunkWorld.newMediumChunkOccupied = false;
+        }
+
+        // TODO Depricate
         // Minor Chunk Placement
         int3 playerMinorChunk = new int3(
             (int)math.floor(playerTransform.Position.x / chunkWorld.chunkSize),
@@ -51,17 +63,12 @@ partial struct CharacterChunkTrackingSystem : ISystem
 
         if (math.any(playerMinorChunk != chunkWorld.activeMinorChunk))
         {
-            chunkWorld.newMinorChunk = true;
+            chunkWorld.newMajorChunkOccupied = true;
             chunkWorld.activeMinorChunk = playerMinorChunk;
         }
         else
         {
-            chunkWorld.newMinorChunk = false;
+            chunkWorld.newMajorChunkOccupied = false;
         }
-    }
-
-    public void OnDestroy(ref SystemState state)
-    {
-
     }
 }

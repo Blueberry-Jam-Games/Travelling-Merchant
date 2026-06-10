@@ -24,79 +24,82 @@ public class ChunkDisplayDebug : MonoBehaviour
         var chunkWorld = em.CreateEntityQuery(typeof(ChunkWorldSingleton)).GetSingleton<ChunkWorldSingleton>();
         var gameState = em.CreateEntityQuery(typeof(GameState)).GetSingleton<GameState>();
         float3 chunkSize = chunkWorld.chunkSize;
-        float3 majorChunkSize = chunkWorld.chunkSize * chunkWorld.MinorPerMajorChunk;
-        majorChunkSize.y = chunkWorld.chunkSize;
+        float3 majorChunkSize = chunkWorld.majorChunkSize;
+        majorChunkSize.y = chunkWorld.mediumChunkSize;
+
+        float3 mediumChunkSize = chunkWorld.mediumChunkSize;
 
         var query = em.CreateEntityQuery(new EntityQueryDesc
         {
             All = new ComponentType[]
             {
                 ComponentType.ReadOnly<LocalTransform>(),
-                ComponentType.ReadOnly<ChunkSleeping>(),
+                ComponentType.ReadOnly<ChunkActive>(),
                 ComponentType.ReadOnly<Chunk>()
             },
             Options = EntityQueryOptions.IgnoreComponentEnabledState
         });
 
-        if(gameState.DEBUG_ChunkOutline)
-        {
-            using (var entities = query.ToEntityArray(Unity.Collections.Allocator.Temp))
-            {
-                float3 shrink = new float3(0.04f, 0.04f, 0.04f);
-                foreach (var entity in entities)
-                {
-                    // Skip if sleeping is enabled
-                    if (em.IsComponentEnabled<ChunkSleeping>(entity))
-                    {
-                        if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
-                        {
-                            var localTransform = em.GetComponentData<LocalTransform>(entity);
+        // if(gameState.DEBUG_ChunkOutline)
+        // {
+        //     using (var entities = query.ToEntityArray(Unity.Collections.Allocator.Temp))
+        //     {
+        //         float3 shrink = new float3(0.04f, 0.04f, 0.04f);
+        //         foreach (var entity in entities)
+        //         {
+        //             // Skip if sleeping is enabled
+        //             if (!em.IsComponentEnabled<ChunkActive>(entity))
+        //             {
+        //                 if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
+        //                 {
+        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-                            Gizmos.color = Color.blue;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-                            float3 size = chunkSize - shrink * 2;
-                            Gizmos.DrawWireCube(corner1, size);
-                        }
-                        else
-                        {
-                            var localTransform = em.GetComponentData<LocalTransform>(entity);
+        //                     Gizmos.color = Color.blue;
+        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+        //                     float3 size = chunkSize - shrink * 2;
+        //                     Gizmos.DrawWireCube(corner1, size);
+        //                 }
+        //                 else
+        //                 {
+        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-                            Gizmos.color = Color.red;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-                            float3 size = chunkSize - shrink * 2;
-                            Gizmos.DrawWireCube(corner1, size);
-                        }
-                    }
-                    else
-                    {
-                        if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
-                        {
-                            var localTransform = em.GetComponentData<LocalTransform>(entity);
+        //                     Gizmos.color = Color.red;
+        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+        //                     float3 size = chunkSize - shrink * 2;
+        //                     Gizmos.DrawWireCube(corner1, size);
+        //                 }
+        //             }
+        //             else
+        //             {
+        //                 if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
+        //                 {
+        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-                            Gizmos.color = Color.orange;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-                            float3 size = chunkSize - shrink * 2;
-                            Gizmos.DrawWireCube(corner1, size);
-                        }
-                        else
-                        {
-                            var localTransform = em.GetComponentData<LocalTransform>(entity);
+        //                     Gizmos.color = Color.orange;
+        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+        //                     float3 size = chunkSize - shrink * 2;
+        //                     Gizmos.DrawWireCube(corner1, size);
+        //                 }
+        //                 else
+        //                 {
+        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-                            Gizmos.color = Color.green;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-                            float3 size = chunkSize - shrink * 2;
-                            Gizmos.DrawWireCube(corner1, size);
-                        }
-                    }
-                }
-            }
-        }
+        //                     Gizmos.color = Color.green;
+        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+        //                     float3 size = chunkSize - shrink * 2;
+        //                     Gizmos.DrawWireCube(corner1, size);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
         
         var majorQuery = em.CreateEntityQuery(new EntityQueryDesc
         {
             All = new ComponentType[]
             {
                 ComponentType.ReadOnly<LocalTransform>(),
+                ComponentType.ReadOnly<ChunkGenerationComplete>(),
                 ComponentType.ReadOnly<MajorChunk>()
             },
             Options = EntityQueryOptions.IgnoreComponentEnabledState
@@ -122,7 +125,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     {
                         MajorChunk majorChunk = em.GetComponentData<MajorChunk>(entity);
 
-                        if(majorChunk.generationStep == 1)
+                        if(em.IsComponentEnabled<ChunkGenerationComplete>(entity))
                         {
                             for(int x = 0; x < 25; x++)
                             {
@@ -136,6 +139,36 @@ public class ChunkDisplayDebug : MonoBehaviour
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        var mediumQuery = em.CreateEntityQuery(new EntityQueryDesc
+        {
+            All = new ComponentType[]
+            {
+                ComponentType.ReadOnly<LocalTransform>(),
+                ComponentType.ReadOnly<ChunkGenerationComplete>(),
+                ComponentType.ReadOnly<MediumChunk>()
+            },
+            Options = EntityQueryOptions.IgnoreComponentEnabledState
+        });
+
+        if(gameState.DEBUG_MediumChunkOutline)
+        {
+            using (var entities = mediumQuery.ToEntityArray(Unity.Collections.Allocator.Temp))
+            {
+                float3 shrink = new float3(0.06f, 0.06f, 0.06f);
+                foreach (var entity in entities)
+                {
+                    var localTransform = em.GetComponentData<LocalTransform>(entity);
+                    if(gameState.DEBUG_MediumChunkOutline)
+                    {
+                        Gizmos.color = Color.darkOrange;
+                        float3 size = mediumChunkSize - shrink * 4;
+                        float3 corner1 = localTransform.Position + size / 2 + shrink * 2;
+                        Gizmos.DrawWireCube(corner1, size);
                     }
                 }
             }

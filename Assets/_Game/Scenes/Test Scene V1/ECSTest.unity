@@ -774,8 +774,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderDistance: 10
-  chunkCubeSize: 64
-  MinorPerMajorChunk: 24
+  renderDistanceMediumChunks: 16
+  minorChunkSize: 32
+  minorPerMediumChunk: 16
+  mediumPerMajorChunk: 8
   isoLevel: 0
   numPointsPerAxis: 33
   boundsSize: 1
@@ -792,6 +794,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9abba9c626f48f64b8859da94260ecbd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameStateAuthoring
+  majorChunkOutline: 1
+  mediumChunkOutline: 1
 --- !u!1 &1951577320
 GameObject:
   m_ObjectHideFlags: 0

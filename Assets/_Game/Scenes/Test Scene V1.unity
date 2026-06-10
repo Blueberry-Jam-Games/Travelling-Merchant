@@ -179,8 +179,8 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.1
-  far clip plane: 1000
+  near clip plane: 0.01
+  far clip plane: 10000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -482,9 +482,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChunkSpawningManager
   MediumChunkPrefab: {fileID: 3072817250476675273, guid: e4bb3f30bcce2fd4ca50e2c3b37b2499, type: 3}
-  targetMajorChunkCount: 20
+  targetMajorChunkCount: 100
   currentMajorChunkCount: 0
-  targetMediumChunkCount: 0
+  targetMediumChunkCount: 2000
   currentMediumChunkCount: 0
   targetMinorChunkCount: 10000
   currentMinorChunkCount: 0

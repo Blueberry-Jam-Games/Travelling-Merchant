@@ -47,19 +47,18 @@ public class ChunkSpawningManager : MonoBehaviour
         // Build archetypes
         var majorArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
-            typeof(ChunkSleeping),
+            typeof(ChunkActive),
             typeof(ChunkRequestUpdate),
-            typeof(MajorChunkReady),
-            typeof(ChunkT), // TODO Change to CHUNK
+            typeof(Chunk),
             typeof(MajorChunk),
             typeof(ChunkGenerationComplete)
         );
 
         var mediumArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
-            typeof(ChunkSleeping),
+            typeof(ChunkActive),
             typeof(ChunkRequestUpdate),
-            typeof(ChunkT), // TODO Change to CHUNK
+            typeof(Chunk),
             typeof(MediumChunk),
             typeof(ChunkGenerationComplete)
         );
@@ -67,12 +66,11 @@ public class ChunkSpawningManager : MonoBehaviour
         var minorArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
             typeof(Chunk),
-            typeof(ChunkSleeping),
+            typeof(ChunkActive),
             typeof(ChunkRequestUpdate),
             typeof(ChunkRequestPhysics),
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
-            typeof(ChunkT), // TODO Change to CHUNK
             typeof(MinorChunk),
             typeof(ChunkGenerationComplete)
         );
@@ -82,20 +80,31 @@ public class ChunkSpawningManager : MonoBehaviour
         mediumPrototype = entityManager.CreateEntity(mediumArchtype);
         minorPrototype = entityManager.CreateEntity(minorArchtype);
 
-        entityManager.SetComponentEnabled<ChunkSleeping>(majorPrototype, true);
+        entityManager.SetComponentEnabled<ChunkActive>(majorPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestUpdate>(majorPrototype, false);
-        entityManager.SetComponentEnabled<MajorChunkReady>(majorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkGenerationComplete>(majorPrototype, false);
+        entityManager.SetComponentEnabled<Chunk>(majorPrototype, false);
         entityManager.SetComponentData(majorPrototype, LocalTransform.Identity);
-        entityManager.SetComponentData(majorPrototype, new MajorChunk
+        entityManager.SetComponentData(majorPrototype, new Chunk
         {
-            generationStep = -1,
-            chunkPosition = new int2(5, 5)
+            position = new int3(5, 5, 5)
+        });
+
+        entityManager.SetComponentData(mediumPrototype, LocalTransform.Identity);
+        entityManager.SetComponentEnabled<ChunkGenerationComplete>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkActive>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkRequestUpdate>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
+        entityManager.SetComponentData(mediumPrototype, new Chunk
+        {
+            position = new int3(5, 5, 5)
         });
 
         entityManager.SetComponentData(minorPrototype, LocalTransform.Identity);
-        entityManager.SetComponentEnabled<ChunkSleeping>(minorPrototype, true);
+        entityManager.SetComponentEnabled<ChunkActive>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestUpdate>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
+        entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
         entityManager.SetName(mediumPrototype, "MediumPrototype");
@@ -167,12 +176,13 @@ public class ChunkSpawningManager : MonoBehaviour
             var e = ECB.Instantiate(index, Prototype);
             ECB.SetComponent(index, e, LocalTransform.Identity);
 
+            ECB.SetComponentEnabled<Chunk>(index, e, true);
+
             if(chunkType == ChunkArchtype.MINOR)
             {
                 ECB.SetComponent(index, e, new Chunk
                 {
-                    chunkPosition = new int3(100, 100, 100),
-                    meshIndex = meshIndexes[index]
+                    position = new int3(100, 100, 100)
                 });
                 ECB.SetName(index, e, "Minor Chunk");
             }

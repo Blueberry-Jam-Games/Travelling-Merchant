@@ -82,178 +82,180 @@ partial class ChunkMeshSystem : SystemBase
         // 
         foreach ((
             RefRW<ChunkRequestUpdate> req,
-            RefRW<Chunk> chunk,
+            RefRO<Chunk> chunk,
+            RefRW<MinorChunk> minorChunk,
             RefRW<PhysicsCollider> physicsCollider,
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<ChunkRequestUpdate>,
-                RefRW<Chunk>,
+                RefRO<Chunk>,
+                RefRW<MinorChunk>,
                 RefRW<PhysicsCollider>
                 >().WithEntityAccess())
         {
-            if(chunkGeneratorSystem.majorChunkExists(chunk.ValueRO.majorChunkPosition))
-            {
-                Entity majorChunk = chunkGeneratorSystem.getMajorChunkEntity(chunk.ValueRO.majorChunkPosition);
-                if(SystemAPI.IsComponentEnabled<MajorChunkReady>(majorChunk))
-                {
-                    if(!majorChunkLookup.TryGetComponent(majorChunk, out MajorChunk output))
-                    {
-                        Debug.LogError("No Component");
-                        continue;
-                    }
+            // if(chunkGeneratorSystem.majorChunkExists(chunk.ValueRO.majorChunkPosition))
+            // {
+            //     Entity majorChunk = chunkGeneratorSystem.getMajorChunkEntity(chunk.ValueRO.majorChunkPosition);
+            //     if(SystemAPI.IsComponentEnabled<MajorChunkReady>(majorChunk))
+            //     {
+            //         if(!majorChunkLookup.TryGetComponent(majorChunk, out MajorChunk output))
+            //         {
+            //             Debug.LogError("No Component");
+            //             continue;
+            //         }
 
-                    bool computeShadersOccupied = true;
-                    foreach(ComputeContainer container in computeContainers)
-                    {
-                        if(container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED)
-                        {
-                            computeShadersOccupied = false;
-                            container.Prepare(entity);
+            //         bool computeShadersOccupied = true;
+            //         foreach(ComputeContainer container in computeContainers)
+            //         {
+            //             if(container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED)
+            //             {
+            //                 computeShadersOccupied = false;
+            //                 container.Prepare(entity);
 
-                            container.Generate(meshGenerator, ref chunkWorld, chunk.ValueRO.chunkPosition * chunkWorld.chunkSize);
+            //                 container.Generate(meshGenerator, ref chunkWorld, chunk.ValueRO.chunkPosition * chunkWorld.chunkSize);
 
-                            SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+            //                 SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
 
-                            break;
-                        }
-                        else
-                        {
-                            // Compute shader unavailable
-                        }
-                    }
+            //                 break;
+            //             }
+            //             else
+            //             {
+            //                 // Compute shader unavailable
+            //             }
+            //         }
 
-                    // If this is true, no compute shaders were found that were clear. This breaks the loop for the frame.
-                    if(computeShadersOccupied)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                continue;
-            }
+            //         // If this is true, no compute shaders were found that were clear. This breaks the loop for the frame.
+            //         if(computeShadersOccupied)
+            //         {
+            //             break;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         continue;
+            //     }
+            // }
+            // else
+            // {
+            //     continue;
+            // }
         }
 
         foreach(ComputeContainer container in computeContainers)
         {
-            Entity chunkEntity = container.linkedChunk;
+            // Entity chunkEntity = container.linkedChunk;
             
-            if(container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED || container.generationStep == ComputeContainer.MinorChunkProgress.BOUND) continue;
+            // if(container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED || container.generationStep == ComputeContainer.MinorChunkProgress.BOUND) continue;
 
-            if (chunkEntity == Entity.Null || !SystemAPI.Exists(chunkEntity))
-            {
-                container.Reset();
-                Debug.LogWarning("No Entity");
-                continue;
-            }
+            // if (chunkEntity == Entity.Null || !SystemAPI.Exists(chunkEntity))
+            // {
+            //     container.Reset();
+            //     Debug.LogWarning("No Entity");
+            //     continue;
+            // }
 
-            if (!chunkLookup.HasComponent(chunkEntity))
-            {
-                container.Reset();
-                Debug.LogWarning("No Chunk Component");
-                continue;
-            }
+            // if (!chunkLookup.HasComponent(chunkEntity))
+            // {
+            //     container.Reset();
+            //     Debug.LogWarning("No Chunk Component");
+            //     continue;
+            // }
 
-            if (!physicsColliderLookup.HasComponent(chunkEntity))
-            {
-                container.Reset();
-                Debug.LogWarning("No Physics Collider");
-                continue;
-            }
+            // if (!physicsColliderLookup.HasComponent(chunkEntity))
+            // {
+            //     container.Reset();
+            //     Debug.LogWarning("No Physics Collider");
+            //     continue;
+            // }
             
-            RefRW<Chunk> chunk = chunkLookup.GetRefRW(chunkEntity);
+            // RefRW<Chunk> chunk = chunkLookup.GetRefRW(chunkEntity);
 
-            RefRW<PhysicsCollider> physicsCollider = physicsColliderLookup.GetRefRW(chunkEntity);
+            // RefRW<PhysicsCollider> physicsCollider = physicsColliderLookup.GetRefRW(chunkEntity);
 
-            if(container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
-            {
-                Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
-                mesh.Clear();
-                ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
+            // if(container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
+            // {
+            //     Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
+            //     mesh.Clear();
+            //     ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
 
-                if (physicsCollider.ValueRW.Value.IsCreated)
-                    physicsCollider.ValueRW.Value.Dispose();
+            //     if (physicsCollider.ValueRW.Value.IsCreated)
+            //         physicsCollider.ValueRW.Value.Dispose();
 
-                container.Reset();
-                continue;
-            }
-            else if(container.generationStep == ComputeContainer.MinorChunkProgress.READBACK_PENDING && container.readbackRequest.done)
-            {
-                if(container.readbackRequest.hasError)
-                {
-                    Debug.LogError("GPU Readback Error");
-                    container.Reset();
-                    return;
-                }
+            //     container.Reset();
+            //     continue;
+            // }
+            // else if(container.generationStep == ComputeContainer.MinorChunkProgress.READBACK_PENDING && container.readbackRequest.done)
+            // {
+            //     if(container.readbackRequest.hasError)
+            //     {
+            //         Debug.LogError("GPU Readback Error");
+            //         container.Reset();
+            //         return;
+            //     }
 
-                NativeArray<Triangle> tris = container.readbackRequest.GetData<Triangle>();
+            //     NativeArray<Triangle> tris = container.readbackRequest.GetData<Triangle>();
 
-                if(chunk.ValueRO.meshBlob.IsCreated)
-                {
-                    chunk.ValueRW.meshBlob.Dispose();
-                }
+            //     if(chunk.ValueRO.meshBlob.IsCreated)
+            //     {
+            //         chunk.ValueRW.meshBlob.Dispose();
+            //     }
 
-                BlobAssetReference<MeshBlob> blob = MeshBlobUtility.CreateMeshBlob(tris, tris.Length);
+            //     BlobAssetReference<MeshBlob> blob = MeshBlobUtility.CreateMeshBlob(tris, tris.Length);
 
-                chunk.ValueRW.meshBlob = blob;
+            //     chunk.ValueRW.meshBlob = blob;
 
-                container.Reset();
+            //     container.Reset();
 
-                Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
-                mesh.Clear();
+            //     Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
+            //     mesh.Clear();
 
-                ref MeshBlob meshBlob = ref chunk.ValueRO.meshBlob.Value;
+            //     ref MeshBlob meshBlob = ref chunk.ValueRO.meshBlob.Value;
 
-                Vector3[] vertices = new Vector3[meshBlob.Vertices.Length];
-                int[] triangles = new int[meshBlob.Triangles.Length];
+            //     Vector3[] vertices = new Vector3[meshBlob.Vertices.Length];
+            //     int[] triangles = new int[meshBlob.Triangles.Length];
 
-                for(int i = 0; i < meshBlob.Vertices.Length; i++)
-                {
-                    float3 v = meshBlob.Vertices[i];
-                    vertices[i] = new Vector3(v.x, v.y, v.z);
-                }
+            //     for(int i = 0; i < meshBlob.Vertices.Length; i++)
+            //     {
+            //         float3 v = meshBlob.Vertices[i];
+            //         vertices[i] = new Vector3(v.x, v.y, v.z);
+            //     }
 
-                for(int i = 0; i < meshBlob.Triangles.Length; i++)
-                {
-                    triangles[i] = meshBlob.Triangles[i];
-                }
+            //     for(int i = 0; i < meshBlob.Triangles.Length; i++)
+            //     {
+            //         triangles[i] = meshBlob.Triangles[i];
+            //     }
 
-                mesh.vertices = vertices;
-                mesh.triangles = triangles;
+            //     mesh.vertices = vertices;
+            //     mesh.triangles = triangles;
                 
-                mesh.RecalculateNormals();
-                mesh.RecalculateTangents();
-                mesh.RecalculateBounds();
+            //     mesh.RecalculateNormals();
+            //     mesh.RecalculateTangents();
+            //     mesh.RecalculateBounds();
 
-                ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
+            //     ChunkMeshManagerSystem.Instance.SetMesh(mesh, chunk.ValueRO.meshIndex);
 
-                SystemAPI.SetComponentEnabled<ChunkRequestPhysics>(chunkEntity, true);
+            //     SystemAPI.SetComponentEnabled<ChunkRequestPhysics>(chunkEntity, true);
 
-                if (physicsCollider.ValueRW.Value.IsCreated)
-                    physicsCollider.ValueRW.Value.Dispose();
-            }
+            //     if (physicsCollider.ValueRW.Value.IsCreated)
+            //         physicsCollider.ValueRW.Value.Dispose();
+            // }
         }
 
-        foreach (var (chunk, transform, entity) in SystemAPI.Query<RefRO<Chunk>, RefRO<LocalTransform>>().WithNone<ChunkSleeping>().WithEntityAccess())
-        {
-            Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
+        // foreach (var (chunk, transform, chunkActive, entity) in SystemAPI.Query<RefRO<Chunk>, RefRO<LocalTransform>, RefRO<ChunkActive>>().WithEntityAccess())
+        // {
+        //     Mesh mesh = ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex);
 
-            if (mesh == null)
-                continue;
+        //     if (mesh == null)
+        //         continue;
 
-            if (mesh.vertexCount == 0 || mesh.triangles.Length == 0)
-                continue;
+        //     if (mesh.vertexCount == 0 || mesh.triangles.Length == 0)
+        //         continue;
 
-            if (!mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Position))
-                continue;
+        //     if (!mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.Position))
+        //         continue;
 
-            Graphics.RenderMesh(new RenderParams(terrainMaterial), ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex), 0, transform.ValueRO.ToMatrix());
-        }
+        //     Graphics.RenderMesh(new RenderParams(terrainMaterial), ChunkMeshManagerSystem.Instance.GetMesh(chunk.ValueRO.meshIndex), 0, transform.ValueRO.ToMatrix());
+        // }
     }
 }
 

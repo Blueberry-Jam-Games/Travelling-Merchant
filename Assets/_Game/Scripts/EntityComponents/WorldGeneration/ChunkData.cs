@@ -2,7 +2,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-public struct ChunkT : IComponentData
+public struct Chunk : IComponentData, IEnableableComponent
 {
     public int3 position; // Local coordinate space position
 }
@@ -22,13 +22,13 @@ public struct MediumChunk : IComponentData
     public UnityObjectRef<MediumChunkMirror> mediumChunkMirror;
 }
 
+public struct MajorChunk : IComponentData
+{
+    public BlobAssetReference<HeightmapData> heightmapData;
+}
+
 public struct RequestedMinorChunkData : IBufferElementData
 {
     public int3 position;
     public bool placed;
-}
-
-public struct MajorChunkT : IComponentData
-{
-    
 }

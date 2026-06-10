@@ -21,7 +21,7 @@ class MajorChunkAuthoringBaker : Baker<MajorChunkAuthoring>
     }
 }
 
-public struct MajorChunk : IComponentData
+public struct MajorChunkO : IComponentData
 {
     const int HeightmapResolution = 25;
     public int2 chunkPosition;

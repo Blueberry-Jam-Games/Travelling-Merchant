@@ -8,41 +8,55 @@ using UnityEngine;
 class ChunkWorldSingletonAuthoring : MonoBehaviour
 {
     public int renderDistance;
-    public int chunkCubeSize = 32;
-    public int MinorPerMajorChunk = 24;
+    public int renderDistanceMediumChunks;
+
+    [Header("Chunk Sizes")]
+    public int minorChunkSize = 32;
+    public int minorPerMediumChunk = 8;
+    public int mediumPerMajorChunk = 3;
+
+    [Header("Generation Information")]
     public float isoLevel;
     public int numPointsPerAxis = 32;
-    public int boundsSize = 1;
-    public string terrainMaterial;
+    public int boundsSize = 1; // TODO Depricate
+    public string terrainMaterial; // TODO Depricate
 }
-
+ 
 class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
 {
     public override void Bake(ChunkWorldSingletonAuthoring authoring)
     {
-        int calculatedChunkCount = (int)math.pow(authoring.renderDistance * 2 + 1, 3) + (int)math.pow(authoring.renderDistance * 2 + 1, 2) * 4; // Revise Later
+        // Temp Storage
+        // int calculatedChunkCount = (int)math.pow(authoring.renderDistance * 2 + 1, 3) + (int)math.pow(authoring.renderDistance * 2 + 1, 2) * 4; // Revise Later
 
-        const int majorChunkPadding = 3; // Passing multiple for chunks. Keep at 3
-        int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) * majorChunkPadding + 1) * 2;
+        // const int majorChunkPadding = 3; // Passing multiple for chunks. Keep at 3
+        // int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) * majorChunkPadding + 1) * 2;
 
         var entity = GetEntity(TransformUsageFlags.None);
         AddComponent(entity, new ChunkWorldSingleton
         {
-            renderDistance = authoring.renderDistance,
-            pooledChunkCount = calculatedChunkCount,
-            currentChunkCount = 0,
-            pooledMajorChunkCount = majorChunkRequiredCount,
-            MajorChunkCurrentCount = 0,
-            MajorChunkSize = authoring.chunkCubeSize * authoring.MinorPerMajorChunk,
-            MinorPerMajorChunk = authoring.MinorPerMajorChunk,
-            majorChunkRenderDistance = (int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) + 1,
+            //renderDistance = authoring.renderDistance, // TODO Depricate
+            minorChunkSize = authoring.minorChunkSize,
+            minorPerMediumChunk = authoring.minorPerMediumChunk,
+            mediumPerMajorChunk = authoring.mediumPerMajorChunk,
+            minorPerMajorChunk = authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk,
+            mediumChunkSize = authoring.minorChunkSize * authoring.minorPerMediumChunk,
+            majorChunkSize = authoring.minorChunkSize * authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk,
+            //majorChunkRenderDistance = (int)math.ceil((float) authoring.renderDistance / authoring.minorPerMediumChunk) + 1, // TODO Depricate
+
+            // Render distance calculations
+            renderDistanceMeters = authoring.renderDistanceMediumChunks * authoring.minorPerMediumChunk * authoring.minorChunkSize,
+            renderDistanceMedium = authoring.renderDistanceMediumChunks,
+            renderDistanceMajor = authoring.renderDistanceMediumChunks / authoring.mediumPerMajorChunk + 1, // Control Major Chunk Buffer
 
             octaves = 3,
-            chunkSize = authoring.chunkCubeSize,
+            chunkSize = authoring.minorChunkSize, // TODO Depricate
             activeMinorChunk = new int3(5, 5, 5),
+            activeMediumChunk = new int2(5, 5),
             activeMajorChunk = new int2(5, 5),
-            newMajorChunk = true,
-            newMinorChunk = true,
+            newMajorChunkOccupied = true,
+            newMediumChunkOccupied = true,
+            newMinorChunkOccupied = true,
             numPointsPerAxis = authoring.numPointsPerAxis,
             isoLevel = authoring.isoLevel,
             boundsSize = authoring.boundsSize,
@@ -54,26 +68,33 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
 }
 public struct ChunkWorldSingleton : IComponentData
 {
-    public int renderDistance;
-    public int pooledChunkCount; // Requested number of minor chunk entities. Contains buffer.
-    public int currentChunkCount; // Actual number of minor chunk entities
-    public int pooledMajorChunkCount; // Required amount of major chunk entities
-    public int MajorChunkCurrentCount; // Actual number of major chunk entities
+    //public int renderDistance; // TODO Depricate
+
+    public int renderDistanceMeters;
+    public int renderDistanceMedium;
+    public int renderDistanceMajor;
 
     public int DispatchableShaderCount; // Count of dispatchable compute shaders can exist for chunks. Higher numbers allow more chunks to run at a time.
 
-    public int MajorChunkSize; // Size of major chunk in Unity Units
-    public int MinorPerMajorChunk; // Size of major chunk in units of Minor Chunks. Current default is 16. Change with caution. Major chunk lists may need to be increased in capacity and heightmap struct must be changed manually.
-    public int majorChunkRenderDistance; // Amount of major chunks to be generated away from the player. Stored in units of Major chunk. TODO Revise to account for LoD
+    public int majorChunkSize; // Size of major chunk in Unity Units
+    public int mediumChunkSize;
+    public int minorChunkSize;
+
+    public int mediumPerMajorChunk;
+    public int minorPerMediumChunk;
+    public int minorPerMajorChunk; // Size of major chunk in units of Minor Chunks. Current default is 16. Change with caution. Major chunk lists may need to be increased in capacity and heightmap struct must be changed manually.
+    //public int majorChunkRenderDistance; // Amount of major chunks to be generated away from the player. Stored in units of Major chunk. TODO Revise to account for LoD
 
     public int3 activeMinorChunk;
+    public int2 activeMediumChunk;
     public int2 activeMajorChunk;
-    public bool newMajorChunk;
-    public bool newMinorChunk;
+    public bool newMajorChunkOccupied;
+    public bool newMediumChunkOccupied;
+    public bool newMinorChunkOccupied; // TODO Depricate
 
     public int octaves;
     public float isoLevel;
-    public int chunkSize;
+    public int chunkSize; // TODO Depricate
     public int numPointsPerAxis;
     public int boundsSize;
 
