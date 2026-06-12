@@ -60,7 +60,8 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(ChunkRequestUpdate),
             typeof(Chunk),
             typeof(MediumChunk),
-            typeof(ChunkGenerationComplete)
+            typeof(ChunkGenerationComplete),
+            typeof(ChunkParentGenerated)
         );
 
         var minorArchtype = entityManager.CreateArchetype(
@@ -72,7 +73,8 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
             typeof(MinorChunk),
-            typeof(ChunkGenerationComplete)
+            typeof(ChunkGenerationComplete),
+            typeof(ChunkParentGenerated)
         );
 
         // Create prototypes
@@ -94,6 +96,7 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkGenerationComplete>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkActive>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestUpdate>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkParentGenerated>(mediumPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
         entityManager.SetComponentData(mediumPrototype, new Chunk
         {
@@ -104,7 +107,8 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkActive>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestUpdate>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
-        entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkParentGenerated>(minorPrototype, false);
+        entityManager.SetComponentEnabled<Chunk>(minorPrototype, false);
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
         entityManager.SetName(mediumPrototype, "MediumPrototype");

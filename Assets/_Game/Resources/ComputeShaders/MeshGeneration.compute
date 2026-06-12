@@ -1,7 +1,7 @@
 #pragma kernel March
 #pragma kernel Density
 
-#include "/Includes/Noise.hlsl"
+#include "/Includes/FastNoiseLite.hlsl"
 
 static const int cornerIndexAFromEdge[12] = {
     0,
@@ -145,6 +145,9 @@ void Density (int3 id : SV_DispatchThreadID)
         return;
     }
 
+    fnl_state noise = fnlCreateState(seed);
+    noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
+
     float3 pos = centre + id * spacing - chunkSize/2;
     float offsetNoise = 0;
 
@@ -155,8 +158,8 @@ void Density (int3 id : SV_DispatchThreadID)
     float weight = 1;
     for (int j =0; j < octaves; j ++) {
         //float3 offsetVec = offsets[j].xyz;
-        float3 offsetVec = float3(0, 0, 0);
-        float n = snoise((pos+offsetNoise) * frequency + offsetVec + offset);
+        float3 calculatedPosition = pos * frequency;
+        float n = fnlGetNoise2D(noise, pos.x, pos.y, pos.z); // Check this line later. Revise this function to be correct.
         float v = 1-abs(n);
         v = v*v;
         v *= weight;

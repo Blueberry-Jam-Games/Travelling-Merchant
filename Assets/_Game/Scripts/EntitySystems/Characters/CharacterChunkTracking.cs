@@ -11,7 +11,6 @@ using UnityEngine;
 using System.Linq;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
-[UpdateBefore(typeof(ChunkPlacementSystem))]
 partial struct CharacterChunkTrackingSystem : ISystem
 {
     public void OnUpdate(ref SystemState state)
