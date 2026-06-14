@@ -134,6 +134,11 @@ partial struct ChunkMediumPopulationSystem : ISystem
                         {
                             Position = (float3)gridPos * chunkWorld.minorChunkSize
                         });
+                        SystemAPI.SetComponent(minorChunk, new MinorChunk
+                        {
+                           mediumChunk = entity,
+                           majorChunk = mediumChunk.ValueRO.majorChunk 
+                        });
 
                         SystemAPI.SetComponentEnabled<ChunkActive>(minorChunk, true);
                         SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(minorChunk, true);
