@@ -9,27 +9,32 @@ using Unity.Collections;
 using UnityEditor;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
+[UpdateAfter(typeof(ChunkPlacementSystem))]
 partial class ChunkMajorPopulationSystem : SystemBase
 {
     public ComputeShader heightmapper;
     private ComputeBuffer heightmap;
-    private ComputeBuffer normalmap;
+    //private ComputeBuffer normalmap;
+    private int heightmapSize;
 
     protected override void OnCreate()
     {
-        heightmapper = Resources.Load<ComputeShader>("ComputeShaders/RoughHeightmap");
+        heightmapper = Resources.Load<ComputeShader>("ComputeShaders/Heightmapper");
     }
 
     protected override void OnUpdate()
     {
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
+        
+        if(!chunkWorld.newMajorChunkOccupied) return;
         // Enable - Disable
         GameState gameState = SystemAPI.GetSingleton<GameState>();
 
-        if(!heightmap.IsValid() || !normalmap.IsValid())
+        if(heightmap == null)
         {
-            heightmap = new ComputeBuffer(chunkWorld.mediumPerMajorChunk * chunkWorld.mediumPerMajorChunk + 1, sizeof(float));
-            normalmap = new ComputeBuffer(chunkWorld.mediumPerMajorChunk * chunkWorld.mediumPerMajorChunk + 1, sizeof(float) * 2);
+            heightmapSize = (chunkWorld.minorPerMajorChunk + 1) * (chunkWorld.minorPerMajorChunk + 1);
+            heightmap = new ComputeBuffer(heightmapSize, sizeof(float));
+            //normalmap = new ComputeBuffer(chunkWorld.mediumPerMajorChunk * chunkWorld.mediumPerMajorChunk + 1, sizeof(float) * 2);
         }
 
         if(!gameState.chunkGenerationEnable) return;
@@ -47,19 +52,18 @@ partial class ChunkMajorPopulationSystem : SystemBase
                 WithDisabled<ChunkGenerationComplete>().
                 WithEntityAccess())
         {
-            int kernel = heightmapper.FindKernel("Heightmap");
+            int kernel = heightmapper.FindKernel("Heightmapper");
             heightmapper.SetBuffer(kernel, "HeightmapBuffer", heightmap);
-            heightmapper.SetBuffer(kernel, "GradientBuffer", normalmap);
 
-            heightmapper.SetInts("chunkPosition", chunk.ValueRO.position.x, chunk.ValueRO.position.y);
+            heightmapper.SetInts("chunkPosition", chunk.ValueRO.position.x, chunk.ValueRO.position.z);
 
             heightmapper.SetInt("minorPerMajorChunks", chunkWorld.minorPerMajorChunk);
+            heightmapper.SetInt("minorChunkSize", chunkWorld.minorChunkSize);
+            heightmapper.SetInt("majorChunkSize", chunkWorld.majorChunkSize);
 
-            heightmapper.SetFloat("scale", 5f);
-            heightmapper.SetFloat("worldHeight", 200);
-            heightmapper.SetInt("seed", 2);
+            heightmapper.SetInt("seed", 24325);
 
-            int size = 25;
+            int size = chunkWorld.minorPerMajorChunk + 1;
             int threads = 8;
 
             int groupsX = Mathf.CeilToInt(size / (float)threads);
@@ -67,36 +71,17 @@ partial class ChunkMajorPopulationSystem : SystemBase
 
             heightmapper.Dispatch(kernel, groupsX, groupsY, 1);
 
-            float[] heights = new float[25 * 25];
-            float2[] gradients = new float2[25 * 25];
+            float[] heights = new float[heightmapSize];
             heightmap.GetData(heights);
-            normalmap.GetData(gradients);
-
-            // string debug = "";
-            // for(int i = 0; i < gradients.Length; i++)
-            // {
-            //     debug += "[";
-            //     debug += gradients[i].x;
-            //     debug += " , ";
-            //     debug += gradients[i].y;
-            //     debug += "] ";
-            //     if(i == 24)
-            //     {
-            //         debug += "\n";
-            //     }
-            // }
-            // Debug.Log(debug);
 
             if(majorChunk.ValueRO.heightmapData.IsCreated)
             {
                 majorChunk.ValueRW.heightmapData.Dispose();
             }
 
-            majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, gradients, 25);
+            majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 1);
             SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, true);
             SystemAPI.SetComponentEnabled<ChunkActive>(entity, true);
-
-            break;
         }
     }
 

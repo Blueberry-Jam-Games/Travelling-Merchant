@@ -197,8 +197,6 @@ public class ChunkSpawningManager : MonoBehaviour
                     mediumChunkMirror = mediumChunkMirrorArray[index]
                 });
                 ECB.SetName(index, e, "MediumChunk");
-                DynamicBuffer<RequestedMinorChunkData> data = ECB.AddBuffer<RequestedMinorChunkData>(index, e);
-                data.EnsureCapacity(256);
             }
             else if(chunkType == ChunkArchtype.MAJOR)
             {

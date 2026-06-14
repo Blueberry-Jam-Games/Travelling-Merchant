@@ -17,9 +17,9 @@ class GameStateManagerBaker : Baker<GameStateAuthoring>
         {
             chunkGenerationEnable = true,
             playerControlEnable = true,
-            // DEBUG_ChunkOutline = false,
             DEBUG_MajorChunkOutline = authoring.majorChunkOutline,
             DEBUG_MediumChunkOutline = authoring.mediumChunkOutline,
+            DEBUG_MinorChunkOutline = false,
             DEBUG_Heightmap = false
         });
     }
@@ -29,8 +29,8 @@ public struct GameState : IComponentData
 {
     public bool chunkGenerationEnable;
     public bool playerControlEnable;
-    // public bool DEBUG_ChunkOutline;
     public bool DEBUG_MajorChunkOutline;
     public bool DEBUG_MediumChunkOutline;
+    public bool DEBUG_MinorChunkOutline;
     public bool DEBUG_Heightmap;
 }

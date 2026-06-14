@@ -46,6 +46,7 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
 
             // Render distance calculations
             renderDistanceMeters = authoring.renderDistanceMediumChunks * authoring.minorPerMediumChunk * authoring.minorChunkSize,
+            renderDistanceMinor = (authoring.renderDistanceMediumChunks / 2) * authoring.minorPerMediumChunk,
             renderDistanceMedium = authoring.renderDistanceMediumChunks,
             renderDistanceMajor = authoring.renderDistanceMediumChunks / authoring.mediumPerMajorChunk + 1, // Control Major Chunk Buffer
 
@@ -56,7 +57,6 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             activeMajorChunk = new int2(5, 5),
             newMajorChunkOccupied = true,
             newMediumChunkOccupied = true,
-            newMinorChunkOccupied = true,
             numPointsPerAxis = authoring.numPointsPerAxis,
             isoLevel = authoring.isoLevel,
             boundsSize = authoring.boundsSize,
@@ -71,6 +71,7 @@ public struct ChunkWorldSingleton : IComponentData
     //public int renderDistance; // TODO Depricate
 
     public int renderDistanceMeters;
+    public int renderDistanceMinor;
     public int renderDistanceMedium;
     public int renderDistanceMajor;
 
@@ -90,7 +91,6 @@ public struct ChunkWorldSingleton : IComponentData
     public int2 activeMajorChunk;
     public bool newMajorChunkOccupied;
     public bool newMediumChunkOccupied;
-    public bool newMinorChunkOccupied; // TODO Depricate
 
     public int octaves;
     public float isoLevel;

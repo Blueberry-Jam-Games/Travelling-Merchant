@@ -35,64 +35,65 @@ public class ChunkDisplayDebug : MonoBehaviour
             {
                 ComponentType.ReadOnly<LocalTransform>(),
                 ComponentType.ReadOnly<ChunkActive>(),
-                ComponentType.ReadOnly<Chunk>()
+                ComponentType.ReadOnly<Chunk>(),
+                ComponentType.ReadOnly<MinorChunk>()
             },
             Options = EntityQueryOptions.IgnoreComponentEnabledState
         });
 
-        // if(gameState.DEBUG_ChunkOutline)
-        // {
-        //     using (var entities = query.ToEntityArray(Unity.Collections.Allocator.Temp))
-        //     {
-        //         float3 shrink = new float3(0.04f, 0.04f, 0.04f);
-        //         foreach (var entity in entities)
-        //         {
-        //             // Skip if sleeping is enabled
-        //             if (!em.IsComponentEnabled<ChunkActive>(entity))
-        //             {
-        //                 if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
-        //                 {
-        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
+        if(gameState.DEBUG_MinorChunkOutline)
+        {
+            using (var entities = query.ToEntityArray(Unity.Collections.Allocator.Temp))
+            {
+                float3 shrink = new float3(0.04f, 0.04f, 0.04f);
+                foreach (var entity in entities)
+                {
+                    // Skip if sleeping is enabled
+                    if (!em.IsComponentEnabled<ChunkActive>(entity))
+                    {
+                        if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
+                        {
+                            var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-        //                     Gizmos.color = Color.blue;
-        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-        //                     float3 size = chunkSize - shrink * 2;
-        //                     Gizmos.DrawWireCube(corner1, size);
-        //                 }
-        //                 else
-        //                 {
-        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
+                            Gizmos.color = Color.blue;
+                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 size = chunkSize - shrink * 2;
+                            Gizmos.DrawWireCube(corner1, size);
+                        }
+                        else
+                        {
+                            var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-        //                     Gizmos.color = Color.red;
-        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-        //                     float3 size = chunkSize - shrink * 2;
-        //                     Gizmos.DrawWireCube(corner1, size);
-        //                 }
-        //             }
-        //             else
-        //             {
-        //                 if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
-        //                 {
-        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
+                            Gizmos.color = Color.red;
+                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 size = chunkSize - shrink * 2;
+                            Gizmos.DrawWireCube(corner1, size);
+                        }
+                    }
+                    else
+                    {
+                        if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
+                        {
+                            var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-        //                     Gizmos.color = Color.orange;
-        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-        //                     float3 size = chunkSize - shrink * 2;
-        //                     Gizmos.DrawWireCube(corner1, size);
-        //                 }
-        //                 else
-        //                 {
-        //                     var localTransform = em.GetComponentData<LocalTransform>(entity);
+                            Gizmos.color = Color.orange;
+                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 size = chunkSize - shrink * 2;
+                            Gizmos.DrawWireCube(corner1, size);
+                        }
+                        else
+                        {
+                            var localTransform = em.GetComponentData<LocalTransform>(entity);
 
-        //                     Gizmos.color = Color.green;
-        //                     float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
-        //                     float3 size = chunkSize - shrink * 2;
-        //                     Gizmos.DrawWireCube(corner1, size);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                            Gizmos.color = Color.green;
+                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 size = chunkSize - shrink * 2;
+                            Gizmos.DrawWireCube(corner1, size);
+                        }
+                    }
+                }
+            }
+        }
         
         var majorQuery = em.CreateEntityQuery(new EntityQueryDesc
         {
@@ -127,15 +128,16 @@ public class ChunkDisplayDebug : MonoBehaviour
 
                         if(em.IsComponentEnabled<ChunkGenerationComplete>(entity))
                         {
-                            for(int x = 0; x < 25; x++)
+                            int heightmapSize = majorChunk.heightmapData.Value.resolution;
+                            for(int x = 0; x < heightmapSize; x += chunkWorld.minorPerMediumChunk)
                             {
-                                for(int y = 0; y < 25; y++)
+                                for(int y = 0; y < heightmapSize; y += chunkWorld.minorPerMediumChunk)
                                 {
                                     Vector3 position = localTransform.Position;
-                                    position += new Vector3(x * chunkWorld.chunkSize, majorChunk.heightmapData.Value.heights[y * 25 + x], y * chunkWorld.chunkSize);
+                                    position += new Vector3(x * chunkWorld.minorChunkSize, majorChunk.heightmapData.Value.heights[y * heightmapSize + x], y * chunkWorld.minorChunkSize);
 
                                     Gizmos.color = Color.crimson;
-                                    Gizmos.DrawSphere(position, 1f);
+                                    Gizmos.DrawSphere(position, 5f);
                                 }
                             }
                         }

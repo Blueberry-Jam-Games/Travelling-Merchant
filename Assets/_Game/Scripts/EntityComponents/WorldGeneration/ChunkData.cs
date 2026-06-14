@@ -20,6 +20,7 @@ public struct MinorChunk : IComponentData
 public struct MediumChunk : IComponentData
 {
     public Entity majorChunk;
+    public BlobAssetReference<HeightmapData> majorChunkHeightmap;
     public UnityObjectRef<MediumChunkMirror> mediumChunkMirror;
 }
 
@@ -28,22 +29,15 @@ public struct MajorChunk : IComponentData
     public BlobAssetReference<HeightmapData> heightmapData;
 }
 
-public struct RequestedMinorChunkData : IBufferElementData
-{
-    public int3 position;
-    public bool placed;
-}
-
 public struct HeightmapData
 {
     public int resolution;
     public BlobArray<float> heights;
-    public BlobArray<float2> gradients;
 }
 
 public static class HeightmapDataBlobBuilder
 {
-    public static BlobAssetReference<HeightmapData> Create(float[] heights, float2[] gradients, int resolution)
+    public static BlobAssetReference<HeightmapData> Create(float[] heights, int resolution)
     {
         var builder = new BlobBuilder(Allocator.Temp);
         ref HeightmapData root = ref builder.ConstructRoot<HeightmapData>();
@@ -52,13 +46,8 @@ public static class HeightmapDataBlobBuilder
 
         var heightArray = builder.Allocate(ref root.heights, heights.Length);
 
-        var gradientArray = builder.Allocate(ref root.gradients, gradients.Length);
-
         for (int i = 0; i < heights.Length; i++)
             heightArray[i] = heights[i];
-
-        for (int i = 0; i < gradients.Length; i++)
-            gradientArray[i] = gradients[i];
 
         var blob = builder.CreateBlobAssetReference<HeightmapData>(
             Allocator.Persistent);

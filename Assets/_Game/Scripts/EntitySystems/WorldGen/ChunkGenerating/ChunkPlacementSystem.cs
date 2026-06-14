@@ -25,12 +25,12 @@ partial struct ChunkPlacementSystem : ISystem
         mediumChunkMap = new NativeParallelHashMap<int2, Entity>(capacity: 1024, Allocator.Persistent);
 
         sleepingMajorChunkQuery = SystemAPI.QueryBuilder().
-            WithAll<MajorChunk>().
+            WithAll<MajorChunk, Chunk>().
             WithDisabled<ChunkActive>().
             Build();
 
         sleepingMediumChunkQuery = SystemAPI.QueryBuilder().
-            WithAll<MediumChunk>().
+            WithAll<MediumChunk, Chunk>().
             WithDisabled<ChunkActive>().
             Build();
     }
@@ -93,6 +93,7 @@ partial struct ChunkPlacementSystem : ISystem
                     }
 
                     int2 checkPos = new int2(x, y) + chunkWorld.activeMajorChunk;
+
                     if(!majorChunkMap.ContainsKey(checkPos))
                     {
                         // activate sleeping chunk
@@ -181,6 +182,7 @@ partial struct ChunkPlacementSystem : ISystem
                         (int)math.floor((float)checkPos.x / chunkWorld.mediumPerMajorChunk),
                         (int)math.floor((float)checkPos.y / chunkWorld.mediumPerMajorChunk)
                     );
+
                     if(!mediumChunkMap.ContainsKey(checkPos) && majorChunkMap.ContainsKey(checkMajorChunkPos))
                     {
                         // activate sleeping chunk

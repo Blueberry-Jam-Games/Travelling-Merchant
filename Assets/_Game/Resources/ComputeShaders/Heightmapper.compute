@@ -1,0 +1,31 @@
+#pragma kernel Heightmapper
+#include "/Includes/HeightFromPos.hlsl"
+
+RWStructuredBuffer<float> HeightmapBuffer;
+
+int4 chunkPosition;
+int minorPerMajorChunks;
+float majorChunkSize;
+float minorChunkSize;
+int seed;
+
+[numthreads(8,8,1)]
+void Heightmapper(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x > minorPerMajorChunks || id.y > minorPerMajorChunks)
+        return;
+
+    // Create and configure noise state
+    fnl_state noise = fnlCreateState(seed);
+    noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
+
+    uint index = id.x + id.y * (minorPerMajorChunks + 1);
+
+    float2 chunkBase = (float2)chunkPosition.xy * majorChunkSize;
+
+    float2 pos = (float2)id.xy * minorChunkSize + chunkBase;
+
+    float height = GetTerrainHeight(pos, seed);
+
+    HeightmapBuffer[index] = height;
+}
