@@ -7,10 +7,10 @@ fnl_state CreateTerrainNoise(int seed)
     state.noise_type = FNL_NOISE_OPENSIMPLEX2;
     state.fractal_type = FNL_FRACTAL_FBM;
 
-    state.frequency = 0.00001;
-    state.octaves = 3;
-    state.lacunarity = 2.0;
-    state.gain = 3;
+    state.frequency = 0.0001;
+    state.octaves = 5;
+    state.lacunarity = 1.2;
+    state.gain = 0.5;
 
     return state;
 }

@@ -32,9 +32,8 @@ partial class ChunkMajorPopulationSystem : SystemBase
 
         if(heightmap == null)
         {
-            heightmapSize = (chunkWorld.minorPerMajorChunk + 1) * (chunkWorld.minorPerMajorChunk + 1);
+            heightmapSize = (chunkWorld.minorPerMajorChunk + 3) * (chunkWorld.minorPerMajorChunk + 3);
             heightmap = new ComputeBuffer(heightmapSize, sizeof(float));
-            //normalmap = new ComputeBuffer(chunkWorld.mediumPerMajorChunk * chunkWorld.mediumPerMajorChunk + 1, sizeof(float) * 2);
         }
 
         if(!gameState.chunkGenerationEnable) return;
@@ -56,6 +55,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
             heightmapper.SetBuffer(kernel, "HeightmapBuffer", heightmap);
 
             heightmapper.SetInts("chunkPosition", chunk.ValueRO.position.x, chunk.ValueRO.position.z);
+            heightmapper.SetInt("chunkOffset", -1);
 
             heightmapper.SetInt("minorPerMajorChunks", chunkWorld.minorPerMajorChunk);
             heightmapper.SetInt("minorChunkSize", chunkWorld.minorChunkSize);
@@ -63,7 +63,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
 
             heightmapper.SetInt("seed", 24325);
 
-            int size = chunkWorld.minorPerMajorChunk + 1;
+            int size = chunkWorld.minorPerMajorChunk + 3;
             int threads = 8;
 
             int groupsX = Mathf.CeilToInt(size / (float)threads);
@@ -79,7 +79,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
                 majorChunk.ValueRW.heightmapData.Dispose();
             }
 
-            majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 1);
+            majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 3);
             SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, true);
             SystemAPI.SetComponentEnabled<ChunkActive>(entity, true);
         }

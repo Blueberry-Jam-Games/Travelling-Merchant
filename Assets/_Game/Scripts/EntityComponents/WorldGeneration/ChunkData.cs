@@ -21,7 +21,7 @@ public struct MediumChunk : IComponentData
 {
     public Entity majorChunk;
     public BlobAssetReference<HeightmapData> majorChunkHeightmap;
-    public UnityObjectRef<MediumChunkMirror> mediumChunkMirror;
+    public BlobAssetReference<MeshBlob> LOD2_Mesh;
 }
 
 public struct MajorChunk : IComponentData
@@ -33,6 +33,11 @@ public struct HeightmapData
 {
     public int resolution;
     public BlobArray<float> heights;
+
+    public float GetHeight(int x, int y)
+    {
+        return heights[x + 1 + (y + 1) * resolution];
+    }
 }
 
 public static class HeightmapDataBlobBuilder
@@ -56,3 +61,4 @@ public static class HeightmapDataBlobBuilder
         return blob;
     }
 }
+

@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
-[UpdateAfter(typeof(ChunkPlacementSystem))]
+[UpdateAfter(typeof(ChunkMediumMeshSystem))]
 [BurstCompile(DisableDirectCall = true)]
 partial class ChunkMeshSystem : SystemBase
 {

@@ -6,7 +6,7 @@ using Unity.Transforms;
 using UnityEngine;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
-[UpdateAfter(typeof(ChunkMajorPopulationSystem))]
+[UpdateAfter(typeof(ChunkMediumHeightmapLinkSystem))]
 partial struct ChunkMediumPopulationSystem : ISystem
 {
     EntityQuery sleepingMinorChunkQuery;
@@ -45,7 +45,8 @@ partial struct ChunkMediumPopulationSystem : ISystem
                 RefRO<Chunk>,
                 RefRO<ChunkRequestUpdate>
                 >().
-                WithDisabled<ChunkGenerationComplete>().
+                WithAll<ChunkActive>().
+                WithDisabled<ChunkGenerationComplete, ChunkRequestLink>().
                 WithEntityAccess())
         {
             int renderDistanceSqr = chunkWorld.renderDistanceMedium * chunkWorld.renderDistanceMedium / 25;
@@ -59,15 +60,6 @@ partial struct ChunkMediumPopulationSystem : ISystem
             {
                 continue;
             }
-
-            Entity majorEntity = mediumChunk.ValueRO.majorChunk;
-
-            if (!majorChunkLookup.HasComponent(majorEntity))
-                continue;
-
-            MajorChunk major = majorChunkLookup[majorEntity];
-
-            mediumChunk.ValueRW.majorChunkHeightmap = major.heightmapData;
 
             for(int x = 0; x < chunkWorld.minorPerMediumChunk; x++)
             {
@@ -86,10 +78,10 @@ partial struct ChunkMediumPopulationSystem : ISystem
                     int resolution = mediumChunk.ValueRO.majorChunkHeightmap.Value.resolution;
 
                     NativeArray<float> heights = new NativeArray<float>(4, Allocator.Temp);
-                    heights[0] = mediumChunk.ValueRO.majorChunkHeightmap.Value.heights[localInMajor.x + localInMajor.y * resolution];
-                    heights[1] = mediumChunk.ValueRO.majorChunkHeightmap.Value.heights[localInMajor.x + 1 + localInMajor.y * resolution];
-                    heights[2] = mediumChunk.ValueRO.majorChunkHeightmap.Value.heights[localInMajor.x + (localInMajor.y + 1) * resolution];
-                    heights[3] = mediumChunk.ValueRO.majorChunkHeightmap.Value.heights[localInMajor.x + 1 + (localInMajor.y + 1) * resolution];
+                    heights[0] = mediumChunk.ValueRO.majorChunkHeightmap.Value.GetHeight(localInMajor.x, localInMajor.y);
+                    heights[1] = mediumChunk.ValueRO.majorChunkHeightmap.Value.GetHeight(localInMajor.x + 1, localInMajor.y);
+                    heights[2] = mediumChunk.ValueRO.majorChunkHeightmap.Value.GetHeight(localInMajor.x, localInMajor.y + 1);
+                    heights[3] = mediumChunk.ValueRO.majorChunkHeightmap.Value.GetHeight(localInMajor.x + 1, localInMajor.y + 1);
 
                     float minHeight = heights[0], maxHeight = heights[0];
 

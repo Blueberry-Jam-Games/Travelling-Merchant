@@ -149,6 +149,7 @@ partial struct ChunkPlacementSystem : ISystem
                     SystemAPI.SetComponentEnabled<ChunkActive>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkRequestMesh>(entity, false);
                     mediumChunkMap.Remove(chunk.ValueRO.position.xz);
                     // TOOD Add other reset stuff. Lots for medium chunks.
                 }
@@ -199,10 +200,13 @@ partial struct ChunkPlacementSystem : ISystem
                             });
                             SystemAPI.SetComponent(newMediumChunk, new MediumChunk
                             {
-                                majorChunk = majorChunkInRegion
+                                majorChunk = majorChunkInRegion,
+                                //majorChunkHeightmap = SystemAPI.GetComponent<MajorChunk>(majorChunkInRegion).heightmapData
                             });
                             SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(newMediumChunk, true);
+                            SystemAPI.SetComponentEnabled<ChunkRequestMesh>(newMediumChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkActive>(newMediumChunk, true);
+                            SystemAPI.SetComponentEnabled<ChunkRequestLink>(newMediumChunk, true);
 
                             SystemAPI.SetComponent(newMediumChunk, new LocalTransform
                             {

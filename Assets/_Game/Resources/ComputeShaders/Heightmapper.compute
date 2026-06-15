@@ -8,22 +8,23 @@ int minorPerMajorChunks;
 float majorChunkSize;
 float minorChunkSize;
 int seed;
+int chunkOffset;
 
 [numthreads(8,8,1)]
 void Heightmapper(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x > minorPerMajorChunks || id.y > minorPerMajorChunks)
+    if (id.x >= minorPerMajorChunks + 3 || id.y >= minorPerMajorChunks + 3)
         return;
 
     // Create and configure noise state
     fnl_state noise = fnlCreateState(seed);
     noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
 
-    uint index = id.x + id.y * (minorPerMajorChunks + 1);
+    uint index = id.x + id.y * (minorPerMajorChunks + 3);
 
     float2 chunkBase = (float2)chunkPosition.xy * majorChunkSize;
 
-    float2 pos = (float2)id.xy * minorChunkSize + chunkBase;
+    float2 pos = (float2)id.xy * minorChunkSize + chunkBase + float2(chunkOffset, chunkOffset);
 
     float height = GetTerrainHeight(pos, seed);
 

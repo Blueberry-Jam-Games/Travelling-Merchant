@@ -7,6 +7,8 @@ public class MediumChunkMirror : MonoBehaviour
     public Mesh TerrainLOD2;
     public Mesh TerrainLOD3;
 
+    public bool newMesh = false;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -36,8 +38,21 @@ public class MediumChunkMirror : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        
+        if(newMesh)
+        {
+            MeshFilter[] LODFilters = transform.GetComponentsInChildren<MeshFilter>();
+
+            LODFilters[0].mesh = TerrainLOD2;
+            LODFilters[1].mesh = TerrainLOD1;
+            LODFilters[2].mesh = TerrainLOD2;
+            LODFilters[3].mesh = TerrainLOD3;
+
+            LODGroup lod = transform.gameObject.GetComponent<LODGroup>();
+            lod.RecalculateBounds();
+
+            newMesh = false;
+        }
     }
 }

@@ -58,10 +58,13 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(LocalTransform),
             typeof(ChunkActive),
             typeof(ChunkRequestUpdate),
+            typeof(ChunkRequestMesh),
             typeof(Chunk),
             typeof(MediumChunk),
             typeof(ChunkGenerationComplete),
-            typeof(ChunkParentGenerated)
+            typeof(ChunkParentGenerated),
+            typeof(ChunkRequiresMirror),
+            typeof(ChunkRequestLink)
         );
 
         var minorArchtype = entityManager.CreateArchetype(
@@ -96,7 +99,9 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkGenerationComplete>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkActive>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestUpdate>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkRequestMesh>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkParentGenerated>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkRequestLink>(mediumPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
         entityManager.SetComponentData(mediumPrototype, new Chunk
         {
@@ -169,9 +174,7 @@ public class ChunkSpawningManager : MonoBehaviour
             MEDIUM,
             MAJOR
         }
-        public NativeArray<int> meshIndexes;
         public ChunkArchtype chunkType;
-        public NativeArray<UnityObjectRef<MediumChunkMirror>> mediumChunkMirrorArray;
         
         public EntityCommandBuffer.ParallelWriter ECB;
 
@@ -192,28 +195,12 @@ public class ChunkSpawningManager : MonoBehaviour
             }
             else if(chunkType == ChunkArchtype.MEDIUM)
             {
-                ECB.SetComponent(index, e, new MediumChunk
-                {
-                    mediumChunkMirror = mediumChunkMirrorArray[index]
-                });
                 ECB.SetName(index, e, "MediumChunk");
             }
             else if(chunkType == ChunkArchtype.MAJOR)
             {
                 ECB.SetName(index, e, "MajorChunk");
             }
-        }
-    }
-
-    [BurstCompile]
-    public struct DestroyJob : IJobParallelFor
-    {
-        [ReadOnly] public NativeArray<Entity> Entities;
-        public EntityCommandBuffer.ParallelWriter ECB;
-
-        public void Execute(int index)
-        {
-            ECB.DestroyEntity(index, Entities[index]);
         }
     }
 
@@ -228,21 +215,13 @@ public class ChunkSpawningManager : MonoBehaviour
         if (delta > 0)
         {
             currentMajorChunkCount = targetMajorChunkCount;
-            
-            NativeArray<UnityObjectRef<MediumChunkMirror>> mediumChunkMirrors = new NativeArray<UnityObjectRef<MediumChunkMirror>>(0, Allocator.TempJob);
-            NativeArray<int> newMeshIndexes = new NativeArray<int>(0, Allocator.TempJob);
 
             JobHandle handle = new SpawnJob
             {
                 Prototype = majorPrototype,
                 ECB = ecbMajorChunk,
                 chunkType = SpawnJob.ChunkArchtype.MAJOR,
-                meshIndexes = newMeshIndexes,
-                mediumChunkMirrorArray = mediumChunkMirrors
             }.Schedule(delta, 64);
-
-            newMeshIndexes.Dispose(handle);
-            mediumChunkMirrors.Dispose(handle);
 
             return handle;
         }
@@ -271,7 +250,7 @@ public class ChunkSpawningManager : MonoBehaviour
 
             for(int i = 0; i < delta; i++)
             {
-                mediumChunkMirrors[i] = Instantiate(MediumChunkPrefab).GetComponent<MediumChunkMirror>();
+                MediumChunkMirrorRegistry.pendingMirrors.Enqueue(Instantiate(MediumChunkPrefab).GetComponent<MediumChunkMirror>());
             }
 
             JobHandle handle = new SpawnJob
@@ -279,8 +258,6 @@ public class ChunkSpawningManager : MonoBehaviour
                 Prototype = mediumPrototype,
                 ECB = ecbMediumChunk,
                 chunkType = SpawnJob.ChunkArchtype.MEDIUM,
-                meshIndexes = newMeshIndexes,
-                mediumChunkMirrorArray = mediumChunkMirrors
             }.Schedule(delta, 64);
 
             newMeshIndexes.Dispose(handle);
@@ -320,8 +297,6 @@ public class ChunkSpawningManager : MonoBehaviour
                 Prototype = minorPrototype,
                 ECB = ecbMinorChunk,
                 chunkType = SpawnJob.ChunkArchtype.MINOR,
-                meshIndexes = newMeshIndexes,
-                mediumChunkMirrorArray = mediumChunkMirrors
             }.Schedule(delta, 64);
 
             newMeshIndexes.Dispose(handle);
