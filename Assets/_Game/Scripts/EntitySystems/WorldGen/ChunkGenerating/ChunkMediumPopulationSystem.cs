@@ -38,15 +38,15 @@ partial struct ChunkMediumPopulationSystem : ISystem
         foreach ((
             RefRW<MediumChunk> mediumChunk,
             RefRO<Chunk> chunk,
-            RefRO<ChunkRequestUpdate> update,
+            RefRO<ChunkRequestPopulation> update,
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<MediumChunk>,
                 RefRO<Chunk>,
-                RefRO<ChunkRequestUpdate>
+                RefRO<ChunkRequestPopulation>
                 >().
                 WithAll<ChunkActive>().
-                WithDisabled<ChunkGenerationComplete, ChunkRequestLink>().
+                WithDisabled<ChunkRequestLink>().
                 WithEntityAccess())
         {
             int renderDistanceSqr = chunkWorld.renderDistanceMedium * chunkWorld.renderDistanceMedium / 25;
@@ -111,11 +111,7 @@ partial struct ChunkMediumPopulationSystem : ISystem
                         Entity minorChunk = sleepingMinorChunks[sleepingChunkIndex];
                         sleepingChunkIndex ++;
 
-                        int3 gridPos = new int3(
-                            chunkPosMinorSpace.x,
-                            h,
-                            chunkPosMinorSpace.y
-                        );
+                        int3 gridPos = new int3(chunkPosMinorSpace.x, h, chunkPosMinorSpace.y);
 
                         SystemAPI.SetComponent(minorChunk, new Chunk
                         {
@@ -133,12 +129,12 @@ partial struct ChunkMediumPopulationSystem : ISystem
                         });
 
                         SystemAPI.SetComponentEnabled<ChunkActive>(minorChunk, true);
-                        SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(minorChunk, true);
+                        SystemAPI.SetComponentEnabled<ChunkRequestMesh>(minorChunk, true);
                     }                
                 }
             }
 
-            SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
         }
     }
 

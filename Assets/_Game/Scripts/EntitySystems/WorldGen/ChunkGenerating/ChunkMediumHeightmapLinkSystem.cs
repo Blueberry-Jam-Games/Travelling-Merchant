@@ -26,15 +26,11 @@ partial struct ChunkMediumHeightmapLinkSystem : ISystem
 
         foreach ((
             RefRW<MediumChunk> mediumChunk,
-            RefRO<Chunk> chunk,
-            RefRO<ChunkRequestLink> update,
             Entity entity
             ) in SystemAPI.Query<
-                RefRW<MediumChunk>,
-                RefRO<Chunk>,
-                RefRO<ChunkRequestLink>
+                RefRW<MediumChunk>
                 >().
-                WithAll<ChunkActive>().
+                WithAll<Chunk, ChunkActive, ChunkRequestLink>().
                 WithEntityAccess())
         {
             Entity majorEntity = mediumChunk.ValueRO.majorChunk;

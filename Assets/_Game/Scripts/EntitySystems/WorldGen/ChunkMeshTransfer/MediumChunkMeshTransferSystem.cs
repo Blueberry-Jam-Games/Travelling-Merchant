@@ -1,4 +1,3 @@
-using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -6,13 +5,6 @@ using UnityEngine;
 
 partial class MediumChunkMeshTransferSystem : SystemBase
 {
-    [BurstCompile]
-    protected override void OnCreate()
-    {
-        
-    }
-
-    [BurstCompile]
     protected override void OnUpdate()
     {
         if (MediumChunkMirrorRegistry.Mirrors.Count == 0)
@@ -20,57 +12,77 @@ partial class MediumChunkMeshTransferSystem : SystemBase
 
         foreach ((
             RefRO<MediumChunk> mediumChunk,
-            RefRO<LocalTransform> Transform,
+            RefRO<LocalTransform> transform,
             Entity entity
             ) in SystemAPI.Query<
                 RefRO<MediumChunk>,
                 RefRO<LocalTransform>
-                >().WithAll<Chunk, ChunkActive>()
-                    .WithDisabled<ChunkRequestMesh, ChunkGenerationComplete>()
-                    .WithEntityAccess())
+                >()
+                .WithAll<Chunk, ChunkActive>()
+                .WithDisabled<ChunkRequestMesh, ChunkGenerationComplete>()
+                .WithEntityAccess())
         {
-            MediumChunkMirror mirror;
-            if(!MediumChunkMirrorRegistry.Mirrors.TryGetValue(entity, out mirror))
-            {
+            if (!MediumChunkMirrorRegistry.Mirrors.TryGetValue(entity, out MediumChunkMirror mirror))
                 continue;
-            }
 
-            Mesh Lod2 = new Mesh();
+            if (!mediumChunk.ValueRO.LOD2_Mesh.IsCreated ||
+                !mediumChunk.ValueRO.LOD3_Mesh.IsCreated)
+                continue;
 
-            ref BlobArray<float3> vertices = ref mediumChunk.ValueRO.LOD2_Mesh.Value.Vertices;
-            ref BlobArray<int> triangles = ref mediumChunk.ValueRO.LOD2_Mesh.Value.Triangles;
+            GenerateMesh(
+                mediumChunk.ValueRO.LOD2_Mesh,
+                mirror.TerrainLOD2);
 
-            Vector3[] verticesVector = new Vector3[vertices.Length];
-            int[] trianglesManaged = new int[triangles.Length];
-            
-            for(int i = 0; i < vertices.Length; i++)
-            {
-                verticesVector[i] = vertices[i];
-            }
+            GenerateMesh(
+                mediumChunk.ValueRO.LOD3_Mesh,
+                mirror.TerrainLOD3);
 
-            for(int i = 0; i < triangles.Length; i++)
-            {
-                trianglesManaged[i] = triangles[i];
-            }
-
-            Lod2.SetVertices(verticesVector);
-            Lod2.SetTriangles(trianglesManaged, 0);
-
-            Lod2.RecalculateNormals(); // TODO REMOVE AND CUSTOM CALCULATE
-            Lod2.RecalculateBounds();
-
-            mirror.TerrainLOD2 = Lod2;
             mirror.newMesh = true;
 
-            mirror.GetComponentInParent<Transform>().position = Transform.ValueRO.Position;
+            mirror.transform.position = transform.ValueRO.Position;
 
             SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, true);
         }
     }
 
-    [BurstCompile]
-    protected override void OnDestroy()
+    private static void GenerateMesh(BlobAssetReference<MeshBlob> meshBlob, Mesh targetMesh)
     {
-        
+        ref MeshBlob blob = ref meshBlob.Value;
+
+        ref var vertices = ref blob.Vertices;
+        ref var triangles = ref blob.Triangles;
+        ref var normals = ref blob.Normals;
+
+        Vector3[] managedVertices = new Vector3[vertices.Length];
+        int[] managedTriangles = new int[triangles.Length];
+        Vector3[] managedNormals = new Vector3[normals.Length];
+
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            float3 v = vertices[i];
+            managedVertices[i] = new Vector3(v.x, v.y, v.z);
+        }
+
+        for (int i = 0; i < triangles.Length; i++)
+        {
+            managedTriangles[i] = triangles[i];
+        }
+
+        for (int i = 0; i < normals.Length; i++)
+        {
+            float3 v = normals[i];
+            managedNormals[i] = new Vector3(v.x, v.y, v.z);
+        }
+
+        targetMesh.Clear();
+
+        targetMesh.vertices = managedVertices;
+        targetMesh.triangles = managedTriangles;
+        targetMesh.normals = managedNormals;
+
+        // TODO: Replace with custom normal generation
+        //targetMesh.RecalculateNormals();
+        targetMesh.RecalculateTangents();
+        targetMesh.RecalculateBounds();
     }
 }

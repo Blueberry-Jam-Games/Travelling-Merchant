@@ -5,8 +5,8 @@ using Unity.Mathematics;
 using Unity.Physics;
 
 [BurstCompile]
-[UpdateInGroup(typeof(WorldGenerationSystemGroup))]
-[UpdateAfter(typeof(ChunkMeshSystem))]
+[UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
+[UpdateBefore(typeof(Unity.Physics.Systems.PhysicsSystemGroup))]
 public partial struct ChunkPhysicsBuildSystem : ISystem
 {
     [BurstCompile]

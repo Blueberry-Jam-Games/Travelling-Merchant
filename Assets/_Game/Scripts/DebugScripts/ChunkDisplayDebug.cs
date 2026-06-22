@@ -23,7 +23,7 @@ public class ChunkDisplayDebug : MonoBehaviour
 
         var chunkWorld = em.CreateEntityQuery(typeof(ChunkWorldSingleton)).GetSingleton<ChunkWorldSingleton>();
         var gameState = em.CreateEntityQuery(typeof(GameState)).GetSingleton<GameState>();
-        float3 chunkSize = chunkWorld.chunkSize;
+        float3 chunkSize = chunkWorld.minorChunkSize;
         float3 majorChunkSize = chunkWorld.majorChunkSize;
         majorChunkSize.y = chunkWorld.mediumChunkSize;
 
@@ -51,7 +51,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     // Skip if sleeping is enabled
                     if (!em.IsComponentEnabled<ChunkActive>(entity))
                     {
-                        if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
+                        if (em.IsComponentEnabled<ChunkRequestMesh>(entity))
                         {
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
@@ -72,7 +72,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     }
                     else
                     {
-                        if (em.IsComponentEnabled<ChunkRequestUpdate>(entity))
+                        if (em.IsComponentEnabled<ChunkRequestMesh>(entity))
                         {
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
@@ -128,10 +128,10 @@ public class ChunkDisplayDebug : MonoBehaviour
 
                         if(em.IsComponentEnabled<ChunkGenerationComplete>(entity))
                         {
-                            int heightmapSize = majorChunk.heightmapData.Value.resolution;
-                            for(int x = 0; x < heightmapSize; x += chunkWorld.minorPerMediumChunk)
+                            int heightmapSize = majorChunk.heightmapData.Value.resolution - 1;
+                            for(int x = 0; x < heightmapSize; x += 1 /*chunkWorld.minorPerMediumChunk*/)
                             {
-                                for(int y = 0; y < heightmapSize; y += chunkWorld.minorPerMediumChunk)
+                                for(int y = 0; y < heightmapSize; y += 1 /*chunkWorld.minorPerMediumChunk*/)
                                 {
                                     Vector3 position = localTransform.Position;
                                     position += new Vector3(x * chunkWorld.minorChunkSize, majorChunk.heightmapData.Value.GetHeight(x, y), y * chunkWorld.minorChunkSize);

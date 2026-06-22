@@ -64,7 +64,7 @@ partial struct ChunkPlacementSystem : ISystem
                 {
                     SystemAPI.SetComponentEnabled<ChunkActive>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
                     majorChunkMap.Remove(chunk.ValueRO.position.xz);
                 }
             }
@@ -106,7 +106,7 @@ partial struct ChunkPlacementSystem : ISystem
                             {
                                 position = new int3(checkPos.x, 0, checkPos.y)
                             });
-                            SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(newMajorChunk, true);
+                            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(newMajorChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkActive>(newMajorChunk, true);
 
                             SystemAPI.SetComponent(newMajorChunk, new LocalTransform
@@ -148,7 +148,7 @@ partial struct ChunkPlacementSystem : ISystem
                 {
                     SystemAPI.SetComponentEnabled<ChunkActive>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkRequestMesh>(entity, false);
                     mediumChunkMap.Remove(chunk.ValueRO.position.xz);
                     // TOOD Add other reset stuff. Lots for medium chunks.
@@ -203,7 +203,7 @@ partial struct ChunkPlacementSystem : ISystem
                                 majorChunk = majorChunkInRegion,
                                 //majorChunkHeightmap = SystemAPI.GetComponent<MajorChunk>(majorChunkInRegion).heightmapData
                             });
-                            SystemAPI.SetComponentEnabled<ChunkRequestUpdate>(newMediumChunk, true);
+                            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(newMediumChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkRequestMesh>(newMediumChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkActive>(newMediumChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkRequestLink>(newMediumChunk, true);

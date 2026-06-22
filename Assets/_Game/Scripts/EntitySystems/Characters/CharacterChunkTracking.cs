@@ -55,9 +55,9 @@ partial struct CharacterChunkTrackingSystem : ISystem
         // TODO Depricate
         // Minor Chunk Placement
         int3 playerMinorChunk = new int3(
-            (int)math.floor(playerTransform.Position.x / chunkWorld.chunkSize),
-            (int)math.floor(playerTransform.Position.y / chunkWorld.chunkSize),
-            (int)math.floor(playerTransform.Position.z / chunkWorld.chunkSize)
+            (int)math.floor(playerTransform.Position.x / chunkWorld.minorChunkSize),
+            (int)math.floor(playerTransform.Position.y / chunkWorld.minorChunkSize),
+            (int)math.floor(playerTransform.Position.z / chunkWorld.minorChunkSize)
         );
 
         if (math.any(playerMinorChunk != chunkWorld.activeMinorChunk))

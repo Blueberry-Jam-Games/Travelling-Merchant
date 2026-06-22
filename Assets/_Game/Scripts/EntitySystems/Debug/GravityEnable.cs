@@ -10,7 +10,6 @@ using UnityEngine.InputSystem;
 using UnityEngine.SocialPlatforms;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
-[UpdateAfter(typeof(ChunkMeshSystem))]
 partial struct GravityEnable : ISystem
 {
     bool completed;
@@ -38,11 +37,11 @@ partial struct GravityEnable : ISystem
         foreach ((
             RefRO<Chunk> chunk,
             RefRO<PhysicsCollider> physicsCollider,
-                RefRO<ChunkRequestUpdate> req
+                RefRO<ChunkRequestMesh> req
             ) in SystemAPI.Query<
                 RefRO<Chunk>,
                 RefRO<PhysicsCollider>,
-                RefRO<ChunkRequestUpdate>
+                RefRO<ChunkRequestMesh>
                 >())
         {
             chunkGeneratingCount++;

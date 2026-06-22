@@ -20,6 +20,8 @@ class ChunkWorldSingletonAuthoring : MonoBehaviour
     public int numPointsPerAxis = 32;
     public int boundsSize = 1; // TODO Depricate
     public string terrainMaterial; // TODO Depricate
+
+    public int seed;
 }
  
 class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
@@ -50,8 +52,6 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             renderDistanceMedium = authoring.renderDistanceMediumChunks,
             renderDistanceMajor = authoring.renderDistanceMediumChunks / authoring.mediumPerMajorChunk + 1, // Control Major Chunk Buffer
 
-            octaves = 3,
-            chunkSize = authoring.minorChunkSize, // TODO Depricate
             activeMinorChunk = new int3(5, 5, 5),
             activeMediumChunk = new int2(5, 5),
             activeMajorChunk = new int2(5, 5),
@@ -59,10 +59,10 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             newMediumChunkOccupied = true,
             numPointsPerAxis = authoring.numPointsPerAxis,
             isoLevel = authoring.isoLevel,
-            boundsSize = authoring.boundsSize,
-            terrainMaterial = authoring.terrainMaterial,
 
-            DispatchableShaderCount = 8
+            DispatchableShaderCount = 8,
+
+            seed = authoring.seed
         });
     }
 }
@@ -92,12 +92,8 @@ public struct ChunkWorldSingleton : IComponentData
     public bool newMajorChunkOccupied;
     public bool newMediumChunkOccupied;
 
-    public int octaves;
     public float isoLevel;
-    public int chunkSize; // TODO Depricate
     public int numPointsPerAxis;
-    public int boundsSize;
 
-    // Terrain
-    public FixedString128Bytes terrainMaterial;
+    public int seed;
 }

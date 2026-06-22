@@ -782,6 +782,7 @@ MonoBehaviour:
   numPointsPerAxis: 33
   boundsSize: 1
   terrainMaterial: TerrainMaterial
+  seed: 14534
 --- !u!114 &1302606291
 MonoBehaviour:
   m_ObjectHideFlags: 0

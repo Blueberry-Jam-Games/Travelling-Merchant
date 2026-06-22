@@ -1,7 +1,7 @@
 #pragma kernel March
 #pragma kernel Density
 
-#include "/Includes/FastNoiseLite.hlsl"
+#include "/Includes/HeightFromPos.hlsl"
 
 static const int cornerIndexAFromEdge[12] = {
     0,
@@ -49,24 +49,11 @@ int numPointsPerAxis;
 float isoLevel;
 
 // Noise settings
-float chunkSize;
-float3 centre;
-float3 offset;
+float3 position;
 float spacing;
-float3 worldSize;
 
 // TODO Reimpliment
 // StructuredBuffer<float4> offsets;
-
-int octaves;
-float lacunarity;
-float persistence;
-float noiseScale;
-float noiseWeight;
-float floorOffset;
-float weightMultiplier;
-float hardFloor;
-float hardFloorWeight;
 
 
 float4 interpolateVerts(float4 v1, float4 v2) {
@@ -136,48 +123,27 @@ void March (int3 id : SV_DispatchThreadID)
     }
 }
 
-
+int seed;
 
 [numthreads(numThreads,numThreads,numThreads)]
 void Density (int3 id : SV_DispatchThreadID)
 {
-    if (id.x >= numPointsPerAxis || id.y >= numPointsPerAxis || id.z >= numPointsPerAxis) {
+    if (id.x >= numPointsPerAxis ||
+        id.y >= numPointsPerAxis ||
+        id.z >= numPointsPerAxis)
+    {
         return;
     }
 
-    fnl_state noise = fnlCreateState(seed);
-    noise.noise_type = FNL_NOISE_OPENSIMPLEX2;
+    float3 pos = position + (float)id * spacing;
 
-    float3 pos = centre + id * spacing - chunkSize/2;
-    float offsetNoise = 0;
+    float terrainHeight = GetTerrainHeight(pos.xz, seed);
 
-    float noise = 0;
-
-    float frequency = noiseScale/100;
-    float amplitude = 5;
-    float weight = 1;
-    for (int j =0; j < octaves; j ++) {
-        //float3 offsetVec = offsets[j].xyz;
-        float3 calculatedPosition = pos * frequency;
-        float n = fnlGetNoise2D(noise, pos.x, pos.y, pos.z); // Check this line later. Revise this function to be correct.
-        float v = 1-abs(n);
-        v = v*v;
-        v *= weight;
-        weight = max(min(v*weightMultiplier,1),0);
-        noise += v * amplitude;
-        amplitude *= persistence;
-        frequency *= lacunarity;
-    }
-    
-    float finalVal = -(pos.y + floorOffset) + noise * noiseWeight;
-
-    if (pos.y < hardFloor) {
-        finalVal += hardFloorWeight;
-    }
+    float density = terrainHeight - pos.y;
 
     int index = indexFromCoord(id.x,id.y,id.z);
 
     float3 localPos = id * spacing;
-    points[index] = float4(localPos, finalVal);
-    
+
+    points[index] = float4(localPos, density);
 }
