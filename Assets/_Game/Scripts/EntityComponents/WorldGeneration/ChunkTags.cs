@@ -40,6 +40,21 @@ public struct ChunkRequestLink : IComponentData, IEnableableComponent
     // Chunk requesting a link to a higher order chunk
 }
 
+public struct ChunkValidMesh : IComponentData, IEnableableComponent
+{
+    
+}
+
+public struct ChunkMediumLod0Ready : IComponentData, IEnableableComponent
+{
+    
+}
+
+public struct ChunkMediumLod0Transfered : IComponentData, IEnableableComponent
+{
+    
+}
+
 //  Major Chunk
 //      LocalTransform
 //      ChunkActive

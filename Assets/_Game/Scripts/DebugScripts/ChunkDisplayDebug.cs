@@ -83,10 +83,17 @@ public class ChunkDisplayDebug : MonoBehaviour
                         }
                         else
                         {
+                            if(em.IsComponentEnabled<ChunkValidMesh>(entity))
+                            {
+                                Gizmos.color = Color.green;
+                            }
+                            else
+                            {
+                                Gizmos.color = Color.gray;
+                            }
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
-
-                            Gizmos.color = Color.green;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            
+                            float3 corner1 = localTransform.Position + chunkSize / 2;
                             float3 size = chunkSize - shrink * 2;
                             Gizmos.DrawWireCube(corner1, size);
                         }
@@ -129,7 +136,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                         if(em.IsComponentEnabled<ChunkGenerationComplete>(entity))
                         {
                             int heightmapSize = majorChunk.heightmapData.Value.resolution - 1;
-                            for(int x = 0; x < heightmapSize; x += 1 /*chunkWorld.minorPerMediumChunk*/)
+                            for(int x = 0; x < heightmapSize; x += chunkWorld.minorPerMediumChunk)
                             {
                                 for(int y = 0; y < heightmapSize; y += 1 /*chunkWorld.minorPerMediumChunk*/)
                                 {

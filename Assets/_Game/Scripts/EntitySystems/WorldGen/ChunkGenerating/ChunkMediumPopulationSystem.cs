@@ -95,7 +95,7 @@ partial struct ChunkMediumPopulationSystem : ISystem
                     heights.Dispose();
                     
                     minHeight -= 16;
-                    maxHeight += 16;
+                    //maxHeight += 16;
                     int minHeightChunkSpace = (int)math.floor(minHeight / chunkWorld.minorChunkSize);
                     int maxHeightChunkSpace = (int)math.floor(maxHeight / chunkWorld.minorChunkSize);
 
@@ -135,6 +135,7 @@ partial struct ChunkMediumPopulationSystem : ISystem
             }
 
             SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
+            SystemAPI.SetComponentEnabled<ChunkPopulationComplete>(entity, true);
         }
     }
 

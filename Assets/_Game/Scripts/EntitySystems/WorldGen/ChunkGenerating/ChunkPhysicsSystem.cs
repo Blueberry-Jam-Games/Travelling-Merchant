@@ -43,7 +43,9 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
             EnabledRefRW<ChunkRequestPhysics> requestPhysics)
         {
             if (!chunk.meshBlobHighDetail.IsCreated)
+            {
                 return;
+            }
 
             ref MeshBlob meshBlob = ref chunk.meshBlobHighDetail.Value;
 

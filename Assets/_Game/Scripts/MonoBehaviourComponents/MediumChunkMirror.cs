@@ -44,8 +44,8 @@ public class MediumChunkMirror : MonoBehaviour
         {
             MeshFilter[] LODFilters = transform.GetComponentsInChildren<MeshFilter>();
 
-            LODFilters[0].mesh = TerrainLOD2;
-            LODFilters[1].mesh = TerrainLOD1;
+            LODFilters[0].mesh = TerrainLOD0;
+            LODFilters[1].mesh = TerrainLOD0;
             LODFilters[2].mesh = TerrainLOD2;
             LODFilters[3].mesh = TerrainLOD3;
 

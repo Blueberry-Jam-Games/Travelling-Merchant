@@ -63,7 +63,10 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(MediumChunk),
             typeof(ChunkGenerationComplete),
             typeof(ChunkRequiresMirror),
-            typeof(ChunkRequestLink)
+            typeof(ChunkRequestLink),
+            typeof(ChunkMediumLod0Ready),
+            typeof(ChunkMediumLod0Transfered),
+            typeof(ChunkPopulationComplete)
         );
 
         var minorArchtype = entityManager.CreateArchetype(
@@ -75,7 +78,8 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
             typeof(MinorChunk),
-            typeof(ChunkGenerationComplete)
+            typeof(ChunkGenerationComplete),
+            typeof(ChunkValidMesh)
         );
 
         // Create prototypes
@@ -99,6 +103,9 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkRequestPopulation>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestMesh>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkRequestLink>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkMediumLod0Ready>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkMediumLod0Transfered>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkPopulationComplete>(mediumPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
         entityManager.SetComponentData(mediumPrototype, new Chunk
         {
@@ -111,6 +118,7 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkGenerationComplete>(minorPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(minorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkValidMesh>(minorPrototype, false);
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
         entityManager.SetName(mediumPrototype, "MediumPrototype");

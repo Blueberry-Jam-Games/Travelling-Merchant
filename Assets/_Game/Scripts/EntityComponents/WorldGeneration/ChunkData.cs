@@ -21,7 +21,7 @@ public struct MediumChunk : IComponentData
 {
     public Entity majorChunk;
     public BlobAssetReference<HeightmapData> majorChunkHeightmap;
-    public BlobAssetReference<MeshBlob> LOD_1_Mesh;
+    public BlobAssetReference<MeshBlob> LOD0_Mesh;
     public BlobAssetReference<MeshBlob> LOD2_Mesh;
     public BlobAssetReference<MeshBlob> LOD3_Mesh;
 }

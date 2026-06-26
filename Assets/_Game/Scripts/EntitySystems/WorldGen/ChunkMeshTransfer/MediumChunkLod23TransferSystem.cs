@@ -3,7 +3,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
-partial class MediumChunkMeshTransferSystem : SystemBase
+partial class MediumChunkLod23TransferSystem : SystemBase
 {
     protected override void OnUpdate()
     {

@@ -177,11 +177,12 @@ partial class ChunkMinorMeshSystem : SystemBase
 
             if(container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
             {
-
+                //Debug.Log("Empty Mesh");
                 // TODO Handle Empty Mesh
                 if (physicsCollider.ValueRW.Value.IsCreated)
                     physicsCollider.ValueRW.Value.Dispose();
-                Debug.LogWarning("Empty Mesh");
+                SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkValidMesh>(chunkEntity, false);
                 container.Reset();
                 continue;
             }
@@ -206,6 +207,7 @@ partial class ChunkMinorMeshSystem : SystemBase
                 container.Reset();
 
                 SystemAPI.SetComponentEnabled<ChunkRequestPhysics>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkValidMesh>(chunkEntity, true);
                 SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(chunkEntity, true);
 
                 if (physicsCollider.ValueRW.Value.IsCreated)
@@ -376,7 +378,6 @@ public class ComputeContainer
 
         if (count == 0)
         {
-            Debug.Log("No Tri's");
             generationStep = MinorChunkProgress.EMPTY_MESH;
             return;
         }
@@ -390,7 +391,6 @@ public class ComputeContainer
     {
         //densityMap.SetCounterValue(0);
         triangleBuffer.SetCounterValue(0);
-        pointBuffer.SetCounterValue(0);
         generationStep = MinorChunkProgress.CLEARED;
         linkedMinorChunk = Entity.Null;
     }

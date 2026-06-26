@@ -96,7 +96,7 @@ public struct ECSMesh
         normals = new NativeList<float3>(allocator);
     }
 
-    public void Add(BlobAssetReference<MeshBlob> blob)
+    public void Add(BlobAssetReference<MeshBlob> blob, float3 offset)
     {
         ref MeshBlob b = ref blob.Value;
 
@@ -104,7 +104,7 @@ public struct ECSMesh
 
         // Add vertices
         for (int i = 0; i < b.Vertices.Length; i++)
-            vertices.Add(b.Vertices[i]);
+            vertices.Add(b.Vertices[i] + offset);
 
         // Add triangles (with offset remap)
         for (int i = 0; i < b.Triangles.Length; i++)
