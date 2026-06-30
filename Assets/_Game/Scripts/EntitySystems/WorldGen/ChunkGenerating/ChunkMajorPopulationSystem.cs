@@ -16,6 +16,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
     private ComputeBuffer heightmap;
     //private ComputeBuffer normalmap;
     private int heightmapSize;
+    private int heightmapResolution;
 
     protected override void OnCreate()
     {
@@ -32,7 +33,8 @@ partial class ChunkMajorPopulationSystem : SystemBase
 
         if(heightmap == null)
         {
-            heightmapSize = (chunkWorld.minorPerMajorChunk + 3) * (chunkWorld.minorPerMajorChunk + 3);
+            heightmapResolution = chunkWorld.minorPerMajorChunk + 3;
+            heightmapSize = heightmapResolution * heightmapResolution;
             heightmap = new ComputeBuffer(heightmapSize, sizeof(float));
         }
 
@@ -57,6 +59,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
             heightmapper.SetInts("chunkPosition", chunk.ValueRO.position.x, chunk.ValueRO.position.z);
             heightmapper.SetInt("chunkOffset", -1);
 
+            heightmapper.SetInt("heightmapResolution", heightmapResolution);
             heightmapper.SetInt("minorPerMajorChunks", chunkWorld.minorPerMajorChunk);
             heightmapper.SetInt("minorChunkSize", chunkWorld.minorChunkSize);
             heightmapper.SetInt("majorChunkSize", chunkWorld.majorChunkSize);

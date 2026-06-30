@@ -19,6 +19,7 @@ static float worldHeight = 3000;
 
 float GetTerrainHeight(float2 worldXZ, int seed)
 {
+    worldXZ += float2(0.5, 0.5);
     fnl_state noise = CreateTerrainNoise(seed);
 
     float n = fnlGetNoise2D(noise, worldXZ.x, worldXZ.y);

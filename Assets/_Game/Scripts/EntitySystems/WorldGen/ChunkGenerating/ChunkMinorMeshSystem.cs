@@ -234,8 +234,10 @@ public struct Triangle
                     return new float3(a.x, a.y, a.z);
                 case 1:
                     return new float3(b.x, b.y, b.z);
-                default:
+                case 2:
                     return new float3(c.x, c.y, c.z);
+                default:
+                    return new float3(a.x, a.y, a.z);
             }
         }
     }

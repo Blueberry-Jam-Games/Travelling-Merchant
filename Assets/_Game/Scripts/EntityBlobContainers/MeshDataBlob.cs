@@ -1,6 +1,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using UnityEngine;
 
 public struct MeshBlob
 {
@@ -89,11 +90,14 @@ public struct ECSMesh
     private NativeList<int> triangles;
     private NativeList<float3> normals;
 
+    private int written;
+
     public ECSMesh(Allocator allocator)
     {
         vertices = new NativeList<float3>(allocator);
         triangles = new NativeList<int>(allocator);
         normals = new NativeList<float3>(allocator);
+        written = 0;
     }
 
     public void Add(BlobAssetReference<MeshBlob> blob, float3 offset)
@@ -101,7 +105,6 @@ public struct ECSMesh
         ref MeshBlob b = ref blob.Value;
 
         int baseVertex = vertices.Length;
-
         // Add vertices
         for (int i = 0; i < b.Vertices.Length; i++)
             vertices.Add(b.Vertices[i] + offset);

@@ -776,13 +776,13 @@ MonoBehaviour:
   renderDistance: 10
   renderDistanceMediumChunks: 16
   minorChunkSize: 32
-  minorPerMediumChunk: 8
+  minorPerMediumChunk: 4
   mediumPerMajorChunk: 8
   isoLevel: 0
-  numPointsPerAxis: 33
+  numPointsPerAxis: 17
   boundsSize: 1
   terrainMaterial: TerrainMaterial
-  seed: 14534
+  seed: 4567
 --- !u!114 &1302606291
 MonoBehaviour:
   m_ObjectHideFlags: 0

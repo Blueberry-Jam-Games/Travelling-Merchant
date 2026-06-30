@@ -134,7 +134,7 @@ void Density (int3 id : SV_DispatchThreadID)
         return;
     }
 
-    float3 pos = position + (float3)id * spacing;
+    float3 pos = position + float3(id.x, id.y, id.z) * spacing;
 
     float terrainHeight = GetTerrainHeight(pos.xz, seed);
 

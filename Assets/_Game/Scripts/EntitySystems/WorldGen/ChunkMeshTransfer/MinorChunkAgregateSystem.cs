@@ -48,14 +48,12 @@ partial struct MinorChunkAgregateSystem : ISystem
 
                 if (!SystemAPI.IsComponentEnabled<ChunkGenerationComplete>(minorEntity))
                 {
-                    Debug.Log("Not all generated");
                     notReady = true;
                     break;
                 }
 
                 if(!SystemAPI.IsComponentEnabled<ChunkValidMesh>(minorEntity))
                 {
-                    Debug.Log("InvalidMesh");
                     continue;
                 }
 
