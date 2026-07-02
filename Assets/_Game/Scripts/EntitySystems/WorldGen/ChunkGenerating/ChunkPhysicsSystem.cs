@@ -40,7 +40,8 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
         private void Execute(
             ref PhysicsCollider physicsCollider,
             ref MinorChunk chunk,
-            EnabledRefRW<ChunkRequestPhysics> requestPhysics)
+            EnabledRefRW<ChunkRequestPhysics> requestPhysics,
+            EnabledRefRO<ChunkValidMesh> validMesh)
         {
             if (!chunk.meshBlobHighDetail.IsCreated)
             {
