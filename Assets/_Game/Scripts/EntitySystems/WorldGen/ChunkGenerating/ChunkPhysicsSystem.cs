@@ -6,7 +6,7 @@ using Unity.Physics;
 
 [BurstCompile]
 [UpdateInGroup(typeof(FixedStepSimulationSystemGroup))]
-[UpdateBefore(typeof(Unity.Physics.Systems.PhysicsSystemGroup))]
+[UpdateBefore(typeof(Unity.Physics.Systems.BuildPhysicsWorld))]
 public partial struct ChunkPhysicsBuildSystem : ISystem
 {
     [BurstCompile]

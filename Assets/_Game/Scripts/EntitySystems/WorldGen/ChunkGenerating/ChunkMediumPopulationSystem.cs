@@ -118,10 +118,11 @@ partial struct ChunkMediumPopulationSystem : ISystem
                             position = gridPos
                         });
 
-                        SystemAPI.SetComponent(minorChunk, new LocalTransform
-                        {
-                            Position = (float3)gridPos * chunkWorld.minorChunkSize
-                        });
+                        LocalTransform newTransform = LocalTransform.Identity;
+                        newTransform.Position = (float3)gridPos * chunkWorld.minorChunkSize;
+
+                        SystemAPI.SetComponent(minorChunk, newTransform);
+
                         SystemAPI.SetComponent(minorChunk, new MinorChunk
                         {
                            mediumChunk = entity,

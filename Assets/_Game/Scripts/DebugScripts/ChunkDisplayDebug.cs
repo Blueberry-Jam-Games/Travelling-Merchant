@@ -56,7 +56,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
                             Gizmos.color = Color.blue;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 corner1 = localTransform.Position + chunkSize / 2;
                             float3 size = chunkSize - shrink * 2;
                             Gizmos.DrawWireCube(corner1, size);
                         }
@@ -65,7 +65,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
                             Gizmos.color = Color.red;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 corner1 = localTransform.Position + chunkSize / 2;
                             float3 size = chunkSize - shrink * 2;
                             Gizmos.DrawWireCube(corner1, size);
                         }
@@ -77,7 +77,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
                             Gizmos.color = Color.orange;
-                            float3 corner1 = localTransform.Position + chunkSize / 2 + shrink;
+                            float3 corner1 = localTransform.Position + chunkSize / 2;
                             float3 size = chunkSize - shrink * 2;
                             Gizmos.DrawWireCube(corner1, size);
                         }
@@ -125,7 +125,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     {
                         Gizmos.color = Color.gold;
                         float3 size = majorChunkSize - shrink * 2;
-                        float3 corner1 = localTransform.Position + size / 2 + shrink;
+                        float3 corner1 = localTransform.Position + size / 2;
                         Gizmos.DrawWireCube(corner1, size);
                     }
 
@@ -176,7 +176,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     {
                         Gizmos.color = Color.darkOrange;
                         float3 size = mediumChunkSize - shrink * 4;
-                        float3 corner1 = localTransform.Position + size / 2 + shrink * 2;
+                        float3 corner1 = localTransform.Position + size / 2;
                         Gizmos.DrawWireCube(corner1, size);
                     }
                 }
