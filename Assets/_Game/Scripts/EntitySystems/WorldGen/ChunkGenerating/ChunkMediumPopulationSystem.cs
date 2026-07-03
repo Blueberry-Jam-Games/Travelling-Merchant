@@ -19,8 +19,6 @@ partial struct ChunkMediumPopulationSystem : ISystem
             WithAll<MinorChunk, Chunk>().
             WithDisabled<ChunkActive>().
             Build();
-
-        majorChunkLookup = state.GetComponentLookup<MajorChunk>(isReadOnly: true);
     }
 
     [BurstCompile]
@@ -32,8 +30,6 @@ partial struct ChunkMediumPopulationSystem : ISystem
 
         NativeArray<Entity> sleepingMinorChunks = sleepingMinorChunkQuery.ToEntityArray(Allocator.Temp);
         int sleepingChunkIndex = 0;
-
-        majorChunkLookup.Update(ref state);
 
         foreach ((
             RefRW<MediumChunk> mediumChunk,
@@ -118,6 +114,7 @@ partial struct ChunkMediumPopulationSystem : ISystem
                             position = gridPos
                         });
 
+                        // Must use Identity to keep scale and rotation at acceptable values
                         LocalTransform newTransform = LocalTransform.Identity;
                         newTransform.Position = (float3)gridPos * chunkWorld.minorChunkSize;
 

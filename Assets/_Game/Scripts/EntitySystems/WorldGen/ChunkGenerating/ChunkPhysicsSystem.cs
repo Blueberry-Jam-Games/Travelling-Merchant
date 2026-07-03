@@ -40,11 +40,22 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
         private void Execute(
             ref PhysicsCollider physicsCollider,
             ref MinorChunk chunk,
-            EnabledRefRW<ChunkRequestPhysics> requestPhysics,
-            EnabledRefRO<ChunkValidMesh> validMesh)
+            EnabledRefRW<ChunkRequestPhysics> requestPhysics)
         {
             if (!chunk.meshBlobHighDetail.IsCreated)
             {
+                return;
+            }
+
+            // Dispose old collider
+            if (physicsCollider.Value.IsCreated)
+            {
+                physicsCollider.Value.Dispose();
+            }
+
+            if(chunk.meshHighDetailValid == false)
+            {
+                requestPhysics.ValueRW = false;
                 return;
             }
 
@@ -74,12 +85,6 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
                     meshBlob.Triangles[i * 3 + 0],
                     meshBlob.Triangles[i * 3 + 1],
                     meshBlob.Triangles[i * 3 + 2]);
-            }
-
-            // Dispose old collider
-            if (physicsCollider.Value.IsCreated)
-            {
-                physicsCollider.Value.Dispose();
             }
 
             // Build collider

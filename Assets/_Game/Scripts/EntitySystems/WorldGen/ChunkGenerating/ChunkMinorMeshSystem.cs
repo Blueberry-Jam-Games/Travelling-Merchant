@@ -182,7 +182,7 @@ partial class ChunkMinorMeshSystem : SystemBase
                 // if (physicsCollider.ValueRW.Value.IsCreated)
                 //     physicsCollider.ValueRW.Value.Dispose();
                 SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(chunkEntity, true);
-                SystemAPI.SetComponentEnabled<ChunkValidMesh>(chunkEntity, false);
+                minorChunk.ValueRW.meshHighDetailValid = false;
                 container.Reset();
                 continue;
             }
@@ -207,7 +207,7 @@ partial class ChunkMinorMeshSystem : SystemBase
                 container.Reset();
 
                 SystemAPI.SetComponentEnabled<ChunkRequestPhysics>(chunkEntity, true);
-                SystemAPI.SetComponentEnabled<ChunkValidMesh>(chunkEntity, true);
+                minorChunk.ValueRW.meshHighDetailValid = true;
                 SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(chunkEntity, true);
             }
         }

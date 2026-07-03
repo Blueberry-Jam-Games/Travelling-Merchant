@@ -1,12 +1,5 @@
-using System.Data.Common;
-using System.Drawing;
-using Unity.Burst;
 using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Transforms;
 using UnityEngine;
-using Unity.Collections;
-using UnityEditor;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
 [UpdateAfter(typeof(ChunkPlacementSystem))]
@@ -85,7 +78,6 @@ partial class ChunkMajorPopulationSystem : SystemBase
             majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 3);
             SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, true);
             SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
-            SystemAPI.SetComponentEnabled<ChunkActive>(entity, true);
         }
     }
 

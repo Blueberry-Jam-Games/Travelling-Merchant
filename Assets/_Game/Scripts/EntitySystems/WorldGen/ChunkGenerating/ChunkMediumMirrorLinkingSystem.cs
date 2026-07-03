@@ -16,12 +16,10 @@ partial class ChunkMediumMirrorLinkingSystem : SystemBase
 
         foreach((
             RefRO<MediumChunk> mediumChunk,
-            RefRO<Chunk> Chunk,
             Entity e
                 ) in SystemAPI.Query<
-                RefRO<MediumChunk>,
-                RefRO<Chunk>
-                >().WithPresent<ChunkRequiresMirror>()
+                RefRO<MediumChunk>
+                >().WithAll<ChunkRequiresMirror, Chunk>()
                 .WithEntityAccess())
         {
             if(MediumChunkMirrorRegistry.pendingMirrors.Count > 0)

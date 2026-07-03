@@ -6,6 +6,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using Unity.Physics;
+using Unity.VisualScripting;
 
 public class ChunkSpawningManager : MonoBehaviour
 {
@@ -78,8 +79,8 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
             typeof(MinorChunk),
-            typeof(ChunkGenerationComplete),
-            typeof(ChunkValidMesh)
+            typeof(ChunkGenerationComplete)
+            // typeof(ChunkValidMesh)
         );
 
         // Create prototypes
@@ -118,7 +119,14 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkGenerationComplete>(minorPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(minorPrototype, false);
-        entityManager.SetComponentEnabled<ChunkValidMesh>(minorPrototype, false);
+        entityManager.SetComponentData(minorPrototype, new MinorChunk
+        {
+            mediumChunk = Entity.Null,
+            majorChunk = Entity.Null,
+            meshHighDetailValid = false,
+            meshLowDetailValid = false
+        });
+        // entityManager.SetComponentEnabled<ChunkValidMesh>(minorPrototype, false);
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
         entityManager.SetName(mediumPrototype, "MediumPrototype");

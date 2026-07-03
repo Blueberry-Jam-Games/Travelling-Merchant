@@ -90,14 +90,11 @@ public struct ECSMesh
     private NativeList<int> triangles;
     private NativeList<float3> normals;
 
-    private int written;
-
     public ECSMesh(Allocator allocator)
     {
         vertices = new NativeList<float3>(allocator);
         triangles = new NativeList<int>(allocator);
         normals = new NativeList<float3>(allocator);
-        written = 0;
     }
 
     public void Add(BlobAssetReference<MeshBlob> blob, float3 offset)

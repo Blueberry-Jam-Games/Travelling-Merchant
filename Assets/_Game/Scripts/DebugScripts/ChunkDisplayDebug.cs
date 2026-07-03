@@ -83,14 +83,8 @@ public class ChunkDisplayDebug : MonoBehaviour
                         }
                         else
                         {
-                            if(em.IsComponentEnabled<ChunkValidMesh>(entity))
-                            {
-                                Gizmos.color = Color.green;
-                            }
-                            else
-                            {
-                                Gizmos.color = Color.gray;
-                            }
+                            Gizmos.color = Color.green;
+
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
                             
                             float3 corner1 = localTransform.Position + chunkSize / 2;

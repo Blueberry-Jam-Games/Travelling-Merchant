@@ -38,7 +38,7 @@ partial struct MinorChunkAgregateSystem : ISystem
                     RefRO<MinorChunk>,
                     RefRO<Chunk>
                     >().
-                    WithPresent<ChunkValidMesh, ChunkGenerationComplete>().
+                    WithPresent<ChunkGenerationComplete>().
                     WithEntityAccess())
             {
                 if (minorChunk.ValueRO.mediumChunk != mediumEntity)
@@ -52,7 +52,7 @@ partial struct MinorChunkAgregateSystem : ISystem
                     break;
                 }
 
-                if(!SystemAPI.IsComponentEnabled<ChunkValidMesh>(minorEntity))
+                if(!minorChunk.ValueRO.meshHighDetailValid)
                 {
                     continue;
                 }

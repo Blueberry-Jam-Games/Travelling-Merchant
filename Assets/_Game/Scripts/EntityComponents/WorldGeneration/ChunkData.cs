@@ -13,6 +13,9 @@ public struct MinorChunk : IComponentData
     public Entity mediumChunk;
     public Entity majorChunk;
 
+    public bool meshHighDetailValid;
+    public bool meshLowDetailValid;
+
     public BlobAssetReference<MeshBlob> meshBlobHighDetail;
     public BlobAssetReference<MeshBlob> meshBlobLowDetail;
 }
