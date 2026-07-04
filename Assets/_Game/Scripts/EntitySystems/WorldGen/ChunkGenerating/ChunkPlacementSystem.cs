@@ -10,7 +10,6 @@ using UnityEngine;
 [UpdateAfter(typeof(CharacterChunkTrackingSystem))]
 partial struct ChunkPlacementSystem : ISystem
 {
-    private NativeParallelHashMap<int3, Entity> minorChunkMap;
     private NativeParallelHashMap<int2, Entity> mediumChunkMap;
     private NativeParallelHashMap<int2, Entity> majorChunkMap;
 
@@ -20,7 +19,6 @@ partial struct ChunkPlacementSystem : ISystem
 
     public void OnCreate(ref SystemState state)
     {
-        minorChunkMap = new NativeParallelHashMap<int3, Entity>(capacity: 1024, Allocator.Persistent);
         majorChunkMap = new NativeParallelHashMap<int2, Entity>(capacity: 128, Allocator.Persistent);
         mediumChunkMap = new NativeParallelHashMap<int2, Entity>(capacity: 1024, Allocator.Persistent);
 
@@ -39,22 +37,17 @@ partial struct ChunkPlacementSystem : ISystem
     {
         if (!SystemAPI.HasSingleton<ChunkWorldSingleton>()) return;
 
-        EntityManager entityManager = state.EntityManager;
-
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingletonRW<ChunkWorldSingleton>().ValueRO;
 
         if(chunkWorld.newMajorChunkOccupied)
         {
             foreach((
-                RefRW<MajorChunk> majorChunk,
                 RefRO<Chunk> chunk,
-                RefRO<ChunkActive> ChunkActive,
                 Entity entity
                 ) in SystemAPI.Query<
-                    RefRW<MajorChunk>,
-                    RefRO<Chunk>,
-                    RefRO<ChunkActive>
-                    >().WithEntityAccess())
+                    RefRO<Chunk>
+                    >().WithAll<MajorChunk, ChunkActive>()
+                    .WithEntityAccess())
             {
                 int2 posDif = chunkWorld.activeMajorChunk - chunk.ValueRO.position.xz;
 
@@ -63,8 +56,7 @@ partial struct ChunkPlacementSystem : ISystem
                 if(distanceSQR > chunkWorld.renderDistanceMajor * chunkWorld.renderDistanceMajor)
                 {
                     SystemAPI.SetComponentEnabled<ChunkActive>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, false);
                     majorChunkMap.Remove(chunk.ValueRO.position.xz);
                 }
             }
@@ -106,7 +98,6 @@ partial struct ChunkPlacementSystem : ISystem
                             {
                                 position = new int3(checkPos.x, 0, checkPos.y)
                             });
-                            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(newMajorChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkActive>(newMajorChunk, true);
 
                             SystemAPI.SetComponent(newMajorChunk, new LocalTransform
@@ -124,20 +115,20 @@ partial struct ChunkPlacementSystem : ISystem
 
                 }
             }
+            SleepingMajorChunks.Dispose();
         }
 
         if(chunkWorld.newMediumChunkOccupied)
         {
             foreach((
-                RefRW<MediumChunk> mediumChunk,
                 RefRO<Chunk> chunk,
-                RefRO<ChunkActive> ChunkActive,
+                RefRW<MediumChunk> mediumChunk,
                 Entity entity
                 ) in SystemAPI.Query<
-                    RefRW<MediumChunk>,
                     RefRO<Chunk>,
-                    RefRO<ChunkActive>
-                    >().WithEntityAccess())
+                    RefRW<MediumChunk>
+                    >().WithAll<ChunkActive>()
+                    .WithEntityAccess())
             {
                 // TODO move to new system
                 int2 posDif = chunkWorld.activeMediumChunk - chunk.ValueRO.position.xz;
@@ -147,9 +138,13 @@ partial struct ChunkPlacementSystem : ISystem
                 if(distanceSQR > chunkWorld.renderDistanceMedium * chunkWorld.renderDistanceMedium + 1)
                 {
                     SystemAPI.SetComponentEnabled<ChunkActive>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
-                    SystemAPI.SetComponentEnabled<ChunkRequestMesh>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkContainsParentLink>(entity, false);
+                    mediumChunk.ValueRW.LoD_0 = MediumChunk.MeshTransferState.NOT_READY;
+                    mediumChunk.ValueRW.LoD_1 = MediumChunk.MeshTransferState.NOT_READY;
+                    mediumChunk.ValueRW.LoD_2 = MediumChunk.MeshTransferState.NOT_READY;
+                    mediumChunk.ValueRW.LoD_3 = MediumChunk.MeshTransferState.NOT_READY;
                     mediumChunkMap.Remove(chunk.ValueRO.position.xz);
                     // TOOD Add other reset stuff. Lots for medium chunks.
                 }
@@ -203,10 +198,7 @@ partial struct ChunkPlacementSystem : ISystem
                                 majorChunk = majorChunkInRegion,
                                 //majorChunkHeightmap = SystemAPI.GetComponent<MajorChunk>(majorChunkInRegion).heightmapData
                             });
-                            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(newMediumChunk, true);
-                            SystemAPI.SetComponentEnabled<ChunkRequestMesh>(newMediumChunk, true);
                             SystemAPI.SetComponentEnabled<ChunkActive>(newMediumChunk, true);
-                            SystemAPI.SetComponentEnabled<ChunkRequestLink>(newMediumChunk, true);
 
                             SystemAPI.SetComponent(newMediumChunk, new LocalTransform
                             {
@@ -223,12 +215,14 @@ partial struct ChunkPlacementSystem : ISystem
 
                 }
             }
+
+            SleepingMediumChunks.Dispose();
         }
     }
 
     public void OnDestroy(ref SystemState state)
     {
-        if (minorChunkMap.IsCreated) minorChunkMap.Dispose();
+        if (mediumChunkMap.IsCreated) mediumChunkMap.Dispose();
         if (majorChunkMap.IsCreated) majorChunkMap.Dispose();
     }
 

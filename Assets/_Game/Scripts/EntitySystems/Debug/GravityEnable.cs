@@ -14,12 +14,9 @@ partial struct GravityEnable : ISystem
 {
     bool completed;
 
-    int cycles;
-
     public void OnCreate()
     {
         completed = false;
-        cycles = 0;
     }
     
     [BurstCompile]
@@ -27,42 +24,27 @@ partial struct GravityEnable : ISystem
     {
         if (completed) return;
 
-        if(cycles <= 10)
+        foreach (
+            RefRO<Chunk> chunk
+            in SystemAPI.Query<
+                RefRO<Chunk>
+                >()
+                .WithAll<ChunkActive, MinorChunk>()
+                .WithDisabled<ChunkGeneratedPhysicsCollider>())
         {
-            cycles ++;
             return;
         }
 
-        int chunkGeneratingCount = 0;
-        foreach ((
-            RefRO<Chunk> chunk,
-            RefRO<PhysicsCollider> physicsCollider,
-                RefRO<ChunkRequestMesh> req
-            ) in SystemAPI.Query<
-                RefRO<Chunk>,
-                RefRO<PhysicsCollider>,
-                RefRO<ChunkRequestMesh>
-                >())
+        foreach (
+        RefRW<PhysicsGravityFactor> gravity
+        in SystemAPI.Query<
+            RefRW<PhysicsGravityFactor>
+            >())
         {
-            chunkGeneratingCount++;
+            gravity.ValueRW.Value = 1;
         }
 
-        if (chunkGeneratingCount == 0)
-        {
-            foreach (
-            RefRW<PhysicsGravityFactor> gravity
-            in SystemAPI.Query<
-                RefRW<PhysicsGravityFactor>
-                >())
-            {
-                gravity.ValueRW.Value = 1;
-            }
 
-            completed = true;
-        }
-        else
-        {
-            
-        }
+        completed = true;
     }
 }

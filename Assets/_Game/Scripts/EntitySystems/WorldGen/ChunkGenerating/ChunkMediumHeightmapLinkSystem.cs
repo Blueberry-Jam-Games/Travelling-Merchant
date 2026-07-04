@@ -20,8 +20,6 @@ partial struct ChunkMediumHeightmapLinkSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
-
         majorChunkLookup.Update(ref state);
 
         foreach ((
@@ -29,22 +27,25 @@ partial struct ChunkMediumHeightmapLinkSystem : ISystem
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<MediumChunk>
-                >().
-                WithAll<Chunk, ChunkActive, ChunkRequestLink>().
-                WithEntityAccess())
+                >()
+                .WithAll<Chunk, ChunkActive>()
+                .WithDisabled<ChunkContainsParentLink>()
+                .WithEntityAccess())
         {
             Entity majorEntity = mediumChunk.ValueRO.majorChunk;
 
             if (!majorChunkLookup.HasComponent(majorEntity))
                 continue;
 
-            MajorChunk major = majorChunkLookup[majorEntity];
+            if(!SystemAPI.IsComponentEnabled<ChunkPopulated>(majorEntity)) continue;
 
-            if(!major.heightmapData.IsCreated) continue;
+            MajorChunk majorChunk = majorChunkLookup[majorEntity];
 
-            mediumChunk.ValueRW.majorChunkHeightmap = major.heightmapData;
+            if(!majorChunk.heightmapData.IsCreated) continue;
 
-            SystemAPI.SetComponentEnabled<ChunkRequestLink>(entity, false);
+            mediumChunk.ValueRW.majorChunkHeightmap = majorChunk.heightmapData;
+
+            SystemAPI.SetComponentEnabled<ChunkContainsParentLink>(entity, true);
         }
     }
 

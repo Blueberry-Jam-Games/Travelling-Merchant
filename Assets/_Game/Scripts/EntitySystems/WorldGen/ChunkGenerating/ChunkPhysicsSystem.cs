@@ -12,7 +12,12 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<ChunkRequestPhysics>();
+        var query = SystemAPI.QueryBuilder()
+            .WithAll<PhysicsCollider, MinorChunk>()
+            .WithDisabled<ChunkGeneratedPhysicsCollider>()
+            .Build();
+
+        state.RequireForUpdate(query);
     }
 
     [BurstCompile]
@@ -33,6 +38,7 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
     }
 
     [BurstCompile]
+    [WithDisabled(typeof(ChunkGeneratedPhysicsCollider))]
     public partial struct BuildPhysicsJob : IJobEntity
     {
         public EntityCommandBuffer.ParallelWriter ECB;
@@ -40,13 +46,9 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
         private void Execute(
             ref PhysicsCollider physicsCollider,
             ref MinorChunk chunk,
-            EnabledRefRW<ChunkRequestPhysics> requestPhysics)
+            EnabledRefRW<ChunkGeneratedPhysicsCollider> requestPhysics,
+            EnabledRefRW<ChunkGeneratedMesh> generatedMesh)
         {
-            if (!chunk.meshBlobHighDetail.IsCreated)
-            {
-                return;
-            }
-
             // Dispose old collider
             if (physicsCollider.Value.IsCreated)
             {
@@ -55,47 +57,48 @@ public partial struct ChunkPhysicsBuildSystem : ISystem
 
             if(chunk.meshHighDetailValid == false)
             {
-                requestPhysics.ValueRW = false;
+                requestPhysics.ValueRW = true;
                 return;
             }
 
             ref MeshBlob meshBlob = ref chunk.meshBlobHighDetail.Value;
 
-            // Convert blob arrays into temporary native arrays
-            NativeArray<float3> vertices =
-                new NativeArray<float3>(
-                    meshBlob.Vertices.Length,
-                    Allocator.Temp);
+            NativeArray<float3> vertices = default;
+            NativeArray<int3> triangles = default;
 
-            NativeArray<int3> triangles =
-                new NativeArray<int3>(
-                    meshBlob.Triangles.Length / 3,
-                    Allocator.Temp);
-
-            // Copy vertices
-            for (int i = 0; i < meshBlob.Vertices.Length; i++)
+            try
             {
-                vertices[i] = meshBlob.Vertices[i];
-            }
+                // Convert blob arrays into temporary native arrays
+                vertices = new NativeArray<float3>(meshBlob.Vertices.Length, Allocator.Temp);
 
-            // Convert triangle index list -> int3 list
-            for (int i = 0; i < triangles.Length; i++)
+                triangles = new NativeArray<int3>(meshBlob.Triangles.Length / 3, Allocator.Temp);
+
+                // Copy vertices
+                for (int i = 0; i < meshBlob.Vertices.Length; i++)
+                {
+                    vertices[i] = meshBlob.Vertices[i];
+                }
+
+                // Convert triangle index list -> int3 list
+                for (int i = 0; i < triangles.Length; i++)
+                {
+                    triangles[i] = new int3(
+                        meshBlob.Triangles[i * 3 + 0],
+                        meshBlob.Triangles[i * 3 + 1],
+                        meshBlob.Triangles[i * 3 + 2]);
+                }
+
+                // Build collider
+                physicsCollider.Value = MeshCollider.Create(
+                    vertices,
+                    triangles);
+            }
+            finally
             {
-                triangles[i] = new int3(
-                    meshBlob.Triangles[i * 3 + 0],
-                    meshBlob.Triangles[i * 3 + 1],
-                    meshBlob.Triangles[i * 3 + 2]);
+                if (vertices.IsCreated) vertices.Dispose();
+                if (triangles.IsCreated) triangles.Dispose();
             }
-
-            // Build collider
-            physicsCollider.Value = MeshCollider.Create(
-                vertices,
-                triangles);
-
-            vertices.Dispose();
-            triangles.Dispose();
-
-            requestPhysics.ValueRW = false;
+            requestPhysics.ValueRW = true;
         }
     }
 }

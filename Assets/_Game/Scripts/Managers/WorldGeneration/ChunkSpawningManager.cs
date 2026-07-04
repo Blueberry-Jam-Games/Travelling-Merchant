@@ -48,38 +48,47 @@ public class ChunkSpawningManager : MonoBehaviour
         // Build archetypes
         var majorArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
-            typeof(ChunkActive),
-            typeof(ChunkRequestPopulation),
             typeof(Chunk),
             typeof(MajorChunk),
-            typeof(ChunkGenerationComplete)
+            typeof(ChunkActive),
+            typeof(ChunkPopulated)
+            // typeof(ChunkRequestPopulation),
+            
+            // typeof(ChunkGenerationComplete)
         );
 
         var mediumArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
-            typeof(ChunkActive),
-            typeof(ChunkRequestPopulation),
-            typeof(ChunkRequestMesh),
             typeof(Chunk),
             typeof(MediumChunk),
-            typeof(ChunkGenerationComplete),
-            typeof(ChunkRequiresMirror),
-            typeof(ChunkRequestLink),
-            typeof(ChunkMediumLod0Ready),
-            typeof(ChunkMediumLod0Transfered),
-            typeof(ChunkPopulationComplete)
+            typeof(ChunkActive),
+            typeof(ChunkPopulated),
+            typeof(ChunkGeneratedMesh),
+            typeof(EntityHasMirror),
+            typeof(ChunkContainsParentLink)
+            // typeof(ChunkRequestPopulation),
+            // typeof(ChunkRequestMesh),
+            
+            // typeof(ChunkGenerationComplete),
+            // typeof(ChunkRequiresMirror),
+            // typeof(ChunkRequestLink),
+            // typeof(ChunkMediumLod0Ready),
+            // typeof(ChunkMediumLod0Transfered),
+            // typeof(ChunkPopulationComplete)
         );
 
         var minorArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
             typeof(Chunk),
-            typeof(ChunkActive),
-            typeof(ChunkRequestMesh),
-            typeof(ChunkRequestPhysics),
+            typeof(MinorChunk),
+            // typeof(ChunkRequestMesh),
+            // typeof(ChunkRequestPhysics),
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
-            typeof(MinorChunk),
-            typeof(ChunkGenerationComplete)
+            typeof(ChunkActive),
+            typeof(ChunkGeneratedMesh),
+            typeof(ChunkGeneratedPhysicsCollider),
+            typeof(ChunkGeneratingMesh)
             // typeof(ChunkValidMesh)
         );
 
@@ -88,36 +97,48 @@ public class ChunkSpawningManager : MonoBehaviour
         mediumPrototype = entityManager.CreateEntity(mediumArchtype);
         minorPrototype = entityManager.CreateEntity(minorArchtype);
 
-        entityManager.SetComponentEnabled<ChunkActive>(majorPrototype, false);
-        entityManager.SetComponentEnabled<ChunkRequestPopulation>(majorPrototype, false);
-        entityManager.SetComponentEnabled<ChunkGenerationComplete>(majorPrototype, false);
-        entityManager.SetComponentEnabled<Chunk>(majorPrototype, false);
         entityManager.SetComponentData(majorPrototype, LocalTransform.Identity);
+        entityManager.SetComponentEnabled<Chunk>(majorPrototype, false);
         entityManager.SetComponentData(majorPrototype, new Chunk
         {
             position = new int3(5, 5, 5)
         });
+        entityManager.SetComponentEnabled<ChunkActive>(majorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkPopulated>(majorPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkRequestPopulation>(majorPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkGenerationComplete>(majorPrototype, false);
+
 
         entityManager.SetComponentData(mediumPrototype, LocalTransform.Identity);
-        entityManager.SetComponentEnabled<ChunkGenerationComplete>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkActive>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkRequestPopulation>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkRequestMesh>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkRequestLink>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkMediumLod0Ready>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkMediumLod0Transfered>(mediumPrototype, false);
-        entityManager.SetComponentEnabled<ChunkPopulationComplete>(mediumPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
         entityManager.SetComponentData(mediumPrototype, new Chunk
         {
             position = new int3(5, 5, 5)
         });
+        entityManager.SetComponentData(mediumPrototype, new MediumChunk
+        {
+            majorChunk = Entity.Null,
+            LoD_0 = MediumChunk.MeshTransferState.NOT_READY,
+            LoD_1 = MediumChunk.MeshTransferState.NOT_READY,
+            LoD_2 = MediumChunk.MeshTransferState.NOT_READY,
+            LoD_3 = MediumChunk.MeshTransferState.NOT_READY 
+        });
+        entityManager.SetComponentEnabled<ChunkActive>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkPopulated>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkGeneratedMesh>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<EntityHasMirror>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkContainsParentLink>(mediumPrototype, false);
+
+        // entityManager.SetComponentEnabled<ChunkGenerationComplete>(mediumPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkRequestPopulation>(mediumPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkRequestMesh>(mediumPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkRequestLink>(mediumPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkMediumLod0Ready>(mediumPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkMediumLod0Transfered>(mediumPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkPopulationComplete>(mediumPrototype, false);
+        
 
         entityManager.SetComponentData(minorPrototype, LocalTransform.Identity);
-        entityManager.SetComponentEnabled<ChunkActive>(minorPrototype, false);
-        entityManager.SetComponentEnabled<ChunkRequestMesh>(minorPrototype, false);
-        entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
-        entityManager.SetComponentEnabled<ChunkGenerationComplete>(minorPrototype, false);
         entityManager.SetComponentEnabled<Chunk>(minorPrototype, false);
         entityManager.SetComponentData(minorPrototype, new MinorChunk
         {
@@ -126,6 +147,14 @@ public class ChunkSpawningManager : MonoBehaviour
             meshHighDetailValid = false,
             meshLowDetailValid = false
         });
+        entityManager.SetComponentEnabled<ChunkActive>(minorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkGeneratedMesh>(minorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkGeneratedPhysicsCollider>(minorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkGeneratingMesh>(minorPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkRequestMesh>(minorPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
+        // entityManager.SetComponentEnabled<ChunkGenerationComplete>(minorPrototype, false);
+        
         // entityManager.SetComponentEnabled<ChunkValidMesh>(minorPrototype, false);
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
@@ -204,7 +233,7 @@ public class ChunkSpawningManager : MonoBehaviour
                 {
                     position = new int3(100, 100, 100)
                 });
-                ECB.SetName(index, e, "Minor Chunk");
+                ECB.SetName(index, e, "Minor Chunk ");
             }
             else if(chunkType == ChunkArchtype.MEDIUM)
             {

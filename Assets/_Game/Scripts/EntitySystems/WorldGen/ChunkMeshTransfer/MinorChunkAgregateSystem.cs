@@ -13,7 +13,6 @@ partial struct MinorChunkAgregateSystem : ISystem
     public void OnUpdate(ref SystemState state)
     {
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
-        // 1. For each MediumChunk
         foreach ((
             RefRW<MediumChunk> mediumChunk,
             RefRO<Chunk> chunkPose,
@@ -21,10 +20,11 @@ partial struct MinorChunkAgregateSystem : ISystem
             ) in SystemAPI.Query<
                 RefRW<MediumChunk>,
                 RefRO<Chunk>
-                >().WithAll<Chunk, ChunkPopulationComplete>()
-                .WithDisabled<ChunkMediumLod0Ready>()
+                >().WithAll<Chunk, ChunkPopulated>()
                 .WithEntityAccess())
         {
+            if(mediumChunk.ValueRO.LoD_0 != MediumChunk.MeshTransferState.NOT_READY) continue;
+
             ECSMesh LOD00Mesh = new ECSMesh(Allocator.Temp);
 
             bool hasAny = false;
@@ -38,7 +38,7 @@ partial struct MinorChunkAgregateSystem : ISystem
                     RefRO<MinorChunk>,
                     RefRO<Chunk>
                     >().
-                    WithPresent<ChunkGenerationComplete>().
+                    WithPresent<ChunkGeneratedMesh>().
                     WithEntityAccess())
             {
                 if (minorChunk.ValueRO.mediumChunk != mediumEntity)
@@ -46,7 +46,7 @@ partial struct MinorChunkAgregateSystem : ISystem
                     continue;
                 }
 
-                if (!SystemAPI.IsComponentEnabled<ChunkGenerationComplete>(minorEntity))
+                if (!SystemAPI.IsComponentEnabled<ChunkGeneratedMesh>(minorEntity))
                 {
                     notReady = true;
                     break;
@@ -65,12 +65,15 @@ partial struct MinorChunkAgregateSystem : ISystem
             }
 
             if (!hasAny || notReady)
+            {
+                LOD00Mesh.Dispose();
                 continue;
+            }
 
             mediumChunk.ValueRW.LOD0_Mesh = LOD00Mesh.Build(Allocator.Temp);
             LOD00Mesh.Dispose();
 
-            SystemAPI.SetComponentEnabled<ChunkMediumLod0Ready>(mediumEntity, true);
+            mediumChunk.ValueRW.LoD_0 = MediumChunk.MeshTransferState.READY;
         }
     }
 }

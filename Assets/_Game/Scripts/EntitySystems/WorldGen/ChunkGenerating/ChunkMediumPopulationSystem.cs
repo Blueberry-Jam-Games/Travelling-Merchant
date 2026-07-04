@@ -34,25 +34,23 @@ partial struct ChunkMediumPopulationSystem : ISystem
         foreach ((
             RefRW<MediumChunk> mediumChunk,
             RefRO<Chunk> chunk,
-            RefRO<ChunkRequestPopulation> update,
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<MediumChunk>,
-                RefRO<Chunk>,
-                RefRO<ChunkRequestPopulation>
+                RefRO<Chunk>
                 >().
-                WithAll<ChunkActive>().
-                WithDisabled<ChunkRequestLink>().
+                WithAll<ChunkActive, ChunkContainsParentLink>().
+                WithDisabled<ChunkPopulated>().
                 WithEntityAccess())
         {
-            int renderDistanceSqr = chunkWorld.renderDistanceMedium * chunkWorld.renderDistanceMedium / 25;
+            int renderDistanceSqr = chunkWorld.renderDistanceMedium * chunkWorld.renderDistanceMedium / 25; // TODO Change
 
             if(math.distancesq(chunkWorld.activeMediumChunk, chunk.ValueRO.position.xz) > renderDistanceSqr)
             {
                 continue;
             }
 
-            if(!SystemAPI.IsComponentEnabled<ChunkGenerationComplete>(mediumChunk.ValueRO.majorChunk))
+            if(!SystemAPI.IsComponentEnabled<ChunkPopulated>(mediumChunk.ValueRO.majorChunk))
             {
                 continue;
             }
@@ -127,14 +125,14 @@ partial struct ChunkMediumPopulationSystem : ISystem
                         });
 
                         SystemAPI.SetComponentEnabled<ChunkActive>(minorChunk, true);
-                        SystemAPI.SetComponentEnabled<ChunkRequestMesh>(minorChunk, true);
                     }                
                 }
             }
 
-            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
-            SystemAPI.SetComponentEnabled<ChunkPopulationComplete>(entity, true);
+            SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, true);
         }
+
+        sleepingMinorChunks.Dispose();
     }
 
     [BurstCompile]

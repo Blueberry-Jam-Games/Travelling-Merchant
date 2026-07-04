@@ -6,6 +6,7 @@ using UnityEngine;
 public struct Chunk : IComponentData, IEnableableComponent
 {
     public int3 position; // Local coordinate space position
+    public int distancesqr; // Chunk distance squared to player in local coordinate space
 }
 
 public struct MinorChunk : IComponentData
@@ -22,11 +23,21 @@ public struct MinorChunk : IComponentData
 
 public struct MediumChunk : IComponentData
 {
+    public enum MeshTransferState{
+        NOT_READY,
+        READY,
+        TRANSFERED
+    }
     public Entity majorChunk;
     public BlobAssetReference<HeightmapData> majorChunkHeightmap;
     public BlobAssetReference<MeshBlob> LOD0_Mesh;
     public BlobAssetReference<MeshBlob> LOD2_Mesh;
     public BlobAssetReference<MeshBlob> LOD3_Mesh;
+
+    public MeshTransferState LoD_0;
+    public MeshTransferState LoD_1;
+    public MeshTransferState LoD_2;
+    public MeshTransferState LoD_3;
 }
 
 public struct MajorChunk : IComponentData

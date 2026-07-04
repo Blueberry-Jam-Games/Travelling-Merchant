@@ -19,7 +19,8 @@ partial class ChunkMediumMirrorLinkingSystem : SystemBase
             Entity e
                 ) in SystemAPI.Query<
                 RefRO<MediumChunk>
-                >().WithAll<ChunkRequiresMirror, Chunk>()
+                >().WithAll<Chunk>().
+                WithDisabled<EntityHasMirror>()
                 .WithEntityAccess())
         {
             if(MediumChunkMirrorRegistry.pendingMirrors.Count > 0)
@@ -27,7 +28,7 @@ partial class ChunkMediumMirrorLinkingSystem : SystemBase
                 MediumChunkMirror m = MediumChunkMirrorRegistry.pendingMirrors.Dequeue();
                 MediumChunkMirrorRegistry.Mirrors.Add(e, m);
 
-                SystemAPI.SetComponentEnabled<ChunkRequiresMirror>(e, false);
+                SystemAPI.SetComponentEnabled<EntityHasMirror>(e, true);
             }
             else
             {

@@ -36,15 +36,14 @@ partial class ChunkMajorPopulationSystem : SystemBase
         foreach ((
             RefRW<MajorChunk> majorChunk,
             RefRO<Chunk> chunk,
-            RefRO<ChunkRequestPopulation> update,
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<MajorChunk>,
-                RefRO<Chunk>,
-                RefRO<ChunkRequestPopulation>
-                >().
-                WithDisabled<ChunkGenerationComplete>().
-                WithEntityAccess())
+                RefRO<Chunk>
+                >()
+                .WithDisabled<ChunkPopulated>()
+                .WithAll<ChunkActive>()
+                .WithEntityAccess())
         {
             int kernel = heightmapper.FindKernel("Heightmapper");
             heightmapper.SetBuffer(kernel, "HeightmapBuffer", heightmap);
@@ -76,8 +75,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
             }
 
             majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 3);
-            SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, true);
-            SystemAPI.SetComponentEnabled<ChunkRequestPopulation>(entity, false);
+            SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, true);
         }
     }
 

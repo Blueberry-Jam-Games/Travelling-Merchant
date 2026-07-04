@@ -11,17 +11,18 @@ partial class MediumChunkLod23TransferSystem : SystemBase
             return;
 
         foreach ((
-            RefRO<MediumChunk> mediumChunk,
+            RefRW<MediumChunk> mediumChunk,
             RefRO<LocalTransform> transform,
             Entity entity
             ) in SystemAPI.Query<
-                RefRO<MediumChunk>,
+                RefRW<MediumChunk>,
                 RefRO<LocalTransform>
                 >()
-                .WithAll<Chunk, ChunkActive>()
-                .WithDisabled<ChunkRequestMesh, ChunkGenerationComplete>()
+                .WithAll<Chunk, ChunkActive, ChunkGeneratedMesh>()
                 .WithEntityAccess())
         {
+            if(mediumChunk.ValueRO.LoD_2 == MediumChunk.MeshTransferState.TRANSFERED) continue;
+
             if (!MediumChunkMirrorRegistry.Mirrors.TryGetValue(entity, out MediumChunkMirror mirror))
                 continue;
 
@@ -41,7 +42,7 @@ partial class MediumChunkLod23TransferSystem : SystemBase
 
             mirror.transform.position = transform.ValueRO.Position;
 
-            SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(entity, true);
+            mediumChunk.ValueRW.LoD_2 = MediumChunk.MeshTransferState.TRANSFERED;
         }
     }
 

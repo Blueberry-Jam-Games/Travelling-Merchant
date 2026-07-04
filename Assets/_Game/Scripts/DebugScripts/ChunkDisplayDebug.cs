@@ -51,7 +51,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     // Skip if sleeping is enabled
                     if (!em.IsComponentEnabled<ChunkActive>(entity))
                     {
-                        if (em.IsComponentEnabled<ChunkRequestMesh>(entity))
+                        if (!em.IsComponentEnabled<ChunkGeneratedMesh>(entity))
                         {
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
@@ -72,7 +72,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     }
                     else
                     {
-                        if (em.IsComponentEnabled<ChunkRequestMesh>(entity))
+                        if (!em.IsComponentEnabled<ChunkGeneratedMesh>(entity))
                         {
                             var localTransform = em.GetComponentData<LocalTransform>(entity);
 
@@ -101,7 +101,7 @@ public class ChunkDisplayDebug : MonoBehaviour
             All = new ComponentType[]
             {
                 ComponentType.ReadOnly<LocalTransform>(),
-                ComponentType.ReadOnly<ChunkGenerationComplete>(),
+                ComponentType.ReadOnly<ChunkPopulated>(),
                 ComponentType.ReadOnly<MajorChunk>()
             },
             Options = EntityQueryOptions.IgnoreComponentEnabledState
@@ -127,7 +127,7 @@ public class ChunkDisplayDebug : MonoBehaviour
                     {
                         MajorChunk majorChunk = em.GetComponentData<MajorChunk>(entity);
 
-                        if(em.IsComponentEnabled<ChunkGenerationComplete>(entity))
+                        if(em.IsComponentEnabled<ChunkPopulated>(entity))
                         {
                             int heightmapSize = majorChunk.heightmapData.Value.resolution - 1;
                             for(int x = 0; x < heightmapSize; x += chunkWorld.minorPerMediumChunk)
@@ -152,7 +152,7 @@ public class ChunkDisplayDebug : MonoBehaviour
             All = new ComponentType[]
             {
                 ComponentType.ReadOnly<LocalTransform>(),
-                ComponentType.ReadOnly<ChunkGenerationComplete>(),
+                ComponentType.ReadOnly<ChunkPopulated>(),
                 ComponentType.ReadOnly<MediumChunk>()
             },
             Options = EntityQueryOptions.IgnoreComponentEnabledState

@@ -1,58 +1,44 @@
 using Unity.Entities;
 
-public struct ChunkRequestPopulation : IComponentData, IEnableableComponent
-{
-    // Chunk is ready to be populated
-}
-
-public struct ChunkRequestPhysics : IComponentData, IEnableableComponent
-{
-    // Minor chunk is ready to recieve a new physics component
-}
-
-public struct ChunkGenerationComplete : IComponentData, IEnableableComponent
-{
-    // All faccets of a chunk are generated
-}
-
-public struct ChunkPopulationComplete : IComponentData, IEnableableComponent
-{
-    // All elements required for a lower order chunk to generate are present
-}
-
-public struct ChunkRequestMesh : IComponentData, IEnableableComponent
-{
-    // Chunk is ready to recieve a new mesh
-}
-
 public struct ChunkActive : IComponentData, IEnableableComponent
 {
-    // Chunk is in use by a system and either in creation or in use.
+    // Chunk is not sleeping. All tags must be in default state when this is false
 }
 
-public struct ChunkRequiresMirror : IComponentData, IEnableableComponent
+public struct ChunkPopulated : IComponentData, IEnableableComponent
 {
-    // Chunk requires a connection to a chunk mirror monobehaviour. Only occurs once on generation, link remains consistant.
+    // Chunk has heightmap, structure or other data generated
+    // Default: False
 }
 
-public struct ChunkRequestLink : IComponentData, IEnableableComponent
+public struct ChunkGeneratedPhysicsCollider : IComponentData, IEnableableComponent
 {
-    // Chunk requesting a link to a higher order chunk
+    // Minor chunk is ready to recieve a new physics component
+    // Default: False
 }
 
-// public struct ChunkValidMesh : IComponentData, IEnableableComponent
-// {
-    
-// }
-
-public struct ChunkMediumLod0Ready : IComponentData, IEnableableComponent
+public struct ChunkGeneratedMesh : IComponentData, IEnableableComponent
 {
-    
+    // Chunk has had a Mesh generated
+    // Default: False
 }
 
-public struct ChunkMediumLod0Transfered : IComponentData, IEnableableComponent
+public struct ChunkGeneratingMesh : IComponentData, IEnableableComponent
 {
-    
+    // Chunk is having a mesh generated. Only used for async generation.
+    // Default: False
+}
+
+public struct EntityHasMirror : IComponentData, IEnableableComponent
+{
+    // Entity has a monobehaviour mirror set up
+    // Default: False
+}
+
+public struct ChunkContainsParentLink : IComponentData, IEnableableComponent
+{
+    // Chunk entity contains the link to a higher level Chunk. Medium -> Major,  Minor -> Medium
+    // Default: False
 }
 
 //  Major Chunk

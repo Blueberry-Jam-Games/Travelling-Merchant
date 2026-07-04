@@ -20,8 +20,8 @@ partial struct ChunkMediumMeshSystem : ISystem
                 RefRW<MediumChunk>,
                 RefRO<Chunk>
                 >().
-                WithAll<ChunkRequestMesh, ChunkActive>().
-                WithDisabled<ChunkGenerationComplete, ChunkRequestLink>().
+                WithAll<ChunkActive, ChunkContainsParentLink>().
+                WithDisabled<ChunkGeneratedMesh>().
                 WithEntityAccess())
         {
             int scanRegionLOD2 = chunkWorld.minorPerMediumChunk + 3;
@@ -112,11 +112,15 @@ partial struct ChunkMediumMeshSystem : ISystem
             indexesLOD3[4] = 3;
             indexesLOD3[5] = 1;
 
+            if (mediumChunk.ValueRO.LOD2_Mesh.IsCreated) mediumChunk.ValueRW.LOD2_Mesh.Dispose();
+
+            if (mediumChunk.ValueRO.LOD3_Mesh.IsCreated) mediumChunk.ValueRW.LOD3_Mesh.Dispose();
+
             mediumChunk.ValueRW.LOD2_Mesh = MeshBlobUtility.CreateMeshBlob(strippedVerticesLOD2, strippedIndicesLOD2, strippedNormalsLOD2);
 
             mediumChunk.ValueRW.LOD3_Mesh = MeshBlobUtility.CreateMeshBlob(vertexesLOD3, indexesLOD3, normalsLOD3);
 
-            SystemAPI.SetComponentEnabled<ChunkRequestMesh>(entity, false);
+            SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(entity, true);
 
             vertexesLOD2.Dispose();
             indexesLOD2.Dispose();

@@ -7,13 +7,13 @@ using Unity.Collections.LowLevel.Unsafe;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Transforms;
+using Unity.VisualScripting;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
 [UpdateAfter(typeof(ChunkMediumMeshSystem))]
 [BurstCompile(DisableDirectCall = true)]
 partial class ChunkMinorMeshSystem : SystemBase
 {
-    UnityEngine.Material terrainMaterial; // TODO Depricate
     const int threadGroupSize = 8;
     public ComputeShader meshGenerator;
 
@@ -22,7 +22,6 @@ partial class ChunkMinorMeshSystem : SystemBase
     ComputeBuffer cubeMarchArray;
 
     ComponentLookup<MajorChunk> majorChunkLookup;
-    ComponentLookup<MediumChunk> mediumChunkLookup;
     ComponentLookup<MinorChunk> minorChunkLookup;
     ComponentLookup<PhysicsCollider> physicsColliderLookup;
 
@@ -42,8 +41,6 @@ partial class ChunkMinorMeshSystem : SystemBase
         meshGenerator.SetBuffer(kernal, "cubeMarchArray", cubeMarchArray); // New code
 
         majorChunkLookup = GetComponentLookup<MajorChunk>(isReadOnly: true);
-
-        mediumChunkLookup = GetComponentLookup<MediumChunk>(false);
 
         minorChunkLookup = GetComponentLookup<MinorChunk>(false);
         physicsColliderLookup = GetComponentLookup<PhysicsCollider>(false);
@@ -73,7 +70,6 @@ partial class ChunkMinorMeshSystem : SystemBase
         ref ChunkPlacementSystem chunkGeneratorSystem = ref World.Unmanaged.GetUnsafeSystemRef<ChunkPlacementSystem>(World.Unmanaged.GetExistingUnmanagedSystem<ChunkPlacementSystem>());
 
         majorChunkLookup.Update(this);
-        mediumChunkLookup.Update(this);
         minorChunkLookup.Update(this);
         physicsColliderLookup.Update(this);
 
@@ -81,32 +77,22 @@ partial class ChunkMinorMeshSystem : SystemBase
         // Create the Mesh for a chunk requesting an update and set to Mesh Manager 
         // 
         foreach ((
-            RefRW<ChunkRequestMesh> req,
-            RefRO<Chunk> chunk,
             RefRO<LocalTransform> transform,
             RefRW<MinorChunk> minorChunk,
-            RefRW<PhysicsCollider> physicsCollider,
             Entity entity
             ) in SystemAPI.Query<
-                RefRW<ChunkRequestMesh>,
-                RefRO<Chunk>,
                 RefRO<LocalTransform>,
-                RefRW<MinorChunk>,
-                RefRW<PhysicsCollider>
-                >().WithAll<ChunkActive>()
+                RefRW<MinorChunk>
+                >()
+                .WithAll<Chunk, ChunkActive>()
+                .WithDisabled<ChunkGeneratedMesh, ChunkGeneratingMesh>()
                 .WithEntityAccess())
         {
             if(minorChunk.ValueRO.mediumChunk != null)
             {
                 Entity mediumChunk = minorChunk.ValueRO.mediumChunk;
-                if(SystemAPI.IsComponentEnabled<ChunkGenerationComplete>(mediumChunk))
+                if(SystemAPI.IsComponentEnabled<ChunkPopulated>(mediumChunk))
                 {
-                    if(!mediumChunkLookup.TryGetComponent(mediumChunk, out MediumChunk output))
-                    {
-                        Debug.LogError("No Component");
-                        continue;
-                    }
-
                     bool computeShadersOccupied = true;
                     foreach(ComputeContainer container in computeContainers)
                     {
@@ -117,7 +103,7 @@ partial class ChunkMinorMeshSystem : SystemBase
 
                             container.Generate(meshGenerator, ref chunkWorld, transform.ValueRO.Position);
 
-                            SystemAPI.SetComponentEnabled<ChunkRequestMesh>(entity, false);
+                            SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(entity, true);
 
                             break;
                         }
@@ -153,7 +139,7 @@ partial class ChunkMinorMeshSystem : SystemBase
             if (chunkEntity == Entity.Null || !SystemAPI.Exists(chunkEntity))
             {
                 container.Reset();
-                Debug.LogWarning("No Entity");
+                Debug.LogWarning("Invalid Entity");
                 continue;
             }
 
@@ -163,25 +149,13 @@ partial class ChunkMinorMeshSystem : SystemBase
                 Debug.LogWarning("No Chunk Component");
                 continue;
             }
-
-            if (!physicsColliderLookup.HasComponent(chunkEntity))
-            {
-                container.Reset();
-                Debug.LogWarning("No Physics Collider");
-                continue;
-            }
             
             RefRW<MinorChunk> minorChunk = minorChunkLookup.GetRefRW(chunkEntity);
 
-            RefRW<PhysicsCollider> physicsCollider = physicsColliderLookup.GetRefRW(chunkEntity);
-
             if(container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
             {
-                //Debug.Log("Empty Mesh");
-                // TODO Handle Empty Mesh
-                // if (physicsCollider.ValueRW.Value.IsCreated)
-                //     physicsCollider.ValueRW.Value.Dispose();
-                SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
                 minorChunk.ValueRW.meshHighDetailValid = false;
                 container.Reset();
                 continue;
@@ -191,6 +165,8 @@ partial class ChunkMinorMeshSystem : SystemBase
                 if(container.readbackRequest.hasError)
                 {
                     Debug.LogError("GPU Readback Error");
+                    SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, false);
+                    SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
                     container.Reset();
                     return;
                 }
@@ -206,11 +182,20 @@ partial class ChunkMinorMeshSystem : SystemBase
 
                 container.Reset();
 
-                SystemAPI.SetComponentEnabled<ChunkRequestPhysics>(chunkEntity, true);
                 minorChunk.ValueRW.meshHighDetailValid = true;
-                SystemAPI.SetComponentEnabled<ChunkGenerationComplete>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
             }
         }
+    }
+
+    protected override void OnDestroy()
+    {
+        foreach(ComputeContainer c in computeContainers)
+        {
+            c.Dispose();
+        }
+        cubeMarchArray.Dispose();
     }
 }
 
@@ -242,7 +227,6 @@ public struct Triangle
 
 public class ComputeContainer
 {
-    //public GraphicsBuffer densityMap;
     public GraphicsBuffer triangleBuffer;
     public GraphicsBuffer pointBuffer;
     ComputeBuffer triCountBuffer;
@@ -388,15 +372,14 @@ public class ComputeContainer
 
     public void Reset()
     {
-        //densityMap.SetCounterValue(0);
         triangleBuffer.SetCounterValue(0);
         generationStep = MinorChunkProgress.CLEARED;
         linkedMinorChunk = Entity.Null;
     }
 
-    public void Destroy()
+    public void Dispose()
     {
-        //densityMap.Release();
+        triCountBuffer.Release();
         triangleBuffer.Release();
         pointBuffer.Release();
     }
