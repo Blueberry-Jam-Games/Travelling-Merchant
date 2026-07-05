@@ -130,7 +130,6 @@ partial struct ChunkPlacementSystem : ISystem
                     >().WithAll<ChunkActive>()
                     .WithEntityAccess())
             {
-                // TODO move to new system
                 int2 posDif = chunkWorld.activeMediumChunk - chunk.ValueRO.position.xz;
 
                 int distanceSQR = posDif.x * posDif.x + posDif.y * posDif.y;

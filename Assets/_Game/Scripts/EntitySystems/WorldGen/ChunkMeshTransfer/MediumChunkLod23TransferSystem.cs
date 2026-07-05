@@ -43,6 +43,9 @@ partial class MediumChunkLod23TransferSystem : SystemBase
             mirror.transform.position = transform.ValueRO.Position;
 
             mediumChunk.ValueRW.LoD_2 = MediumChunk.MeshTransferState.TRANSFERED;
+
+            mediumChunk.ValueRW.LOD2_Mesh.Dispose();
+            mediumChunk.ValueRW.LOD3_Mesh.Dispose();
         }
     }
 

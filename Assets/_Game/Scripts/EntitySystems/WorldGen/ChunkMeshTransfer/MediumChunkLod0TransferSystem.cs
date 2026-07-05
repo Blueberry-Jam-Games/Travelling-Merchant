@@ -33,6 +33,8 @@ partial class MediumChunkLod0TransferSystem : SystemBase
             mirror.newMesh = true;
 
             mediumChunk.ValueRW.LoD_0 = MediumChunk.MeshTransferState.TRANSFERED;
+
+            mediumChunk.ValueRW.LOD0_Mesh.Dispose();
         }
     }
 
