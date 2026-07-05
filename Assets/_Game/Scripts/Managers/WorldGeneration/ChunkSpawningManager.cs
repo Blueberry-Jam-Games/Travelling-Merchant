@@ -7,6 +7,7 @@ using Unity.Transforms;
 using UnityEngine;
 using Unity.Physics;
 using Unity.VisualScripting;
+using System;
 
 public class ChunkSpawningManager : MonoBehaviour
 {
@@ -51,10 +52,8 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(Chunk),
             typeof(MajorChunk),
             typeof(ChunkActive),
-            typeof(ChunkPopulated)
-            // typeof(ChunkRequestPopulation),
-            
-            // typeof(ChunkGenerationComplete)
+            typeof(ChunkPopulated),
+            typeof(ChunkDelayedSleep)
         );
 
         var mediumArchtype = entityManager.CreateArchetype(
@@ -65,31 +64,20 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(ChunkPopulated),
             typeof(ChunkGeneratedMesh),
             typeof(EntityHasMirror),
-            typeof(ChunkContainsParentLink)
-            // typeof(ChunkRequestPopulation),
-            // typeof(ChunkRequestMesh),
-            
-            // typeof(ChunkGenerationComplete),
-            // typeof(ChunkRequiresMirror),
-            // typeof(ChunkRequestLink),
-            // typeof(ChunkMediumLod0Ready),
-            // typeof(ChunkMediumLod0Transfered),
-            // typeof(ChunkPopulationComplete)
+            typeof(ChunkContainsParentLink),
+            typeof(ChunkDelayedSleep)
         );
 
         var minorArchtype = entityManager.CreateArchetype(
             typeof(LocalTransform),
             typeof(Chunk),
             typeof(MinorChunk),
-            // typeof(ChunkRequestMesh),
-            // typeof(ChunkRequestPhysics),
             typeof(PhysicsCollider),
             typeof(PhysicsWorldIndex),
             typeof(ChunkActive),
             typeof(ChunkGeneratedMesh),
             typeof(ChunkGeneratedPhysicsCollider),
             typeof(ChunkGeneratingMesh)
-            // typeof(ChunkValidMesh)
         );
 
         // Create prototypes
@@ -97,6 +85,7 @@ public class ChunkSpawningManager : MonoBehaviour
         mediumPrototype = entityManager.CreateEntity(mediumArchtype);
         minorPrototype = entityManager.CreateEntity(minorArchtype);
 
+        #region Major Prototype
         entityManager.SetComponentData(majorPrototype, LocalTransform.Identity);
         entityManager.SetComponentEnabled<Chunk>(majorPrototype, false);
         entityManager.SetComponentData(majorPrototype, new Chunk
@@ -105,10 +94,10 @@ public class ChunkSpawningManager : MonoBehaviour
         });
         entityManager.SetComponentEnabled<ChunkActive>(majorPrototype, false);
         entityManager.SetComponentEnabled<ChunkPopulated>(majorPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkRequestPopulation>(majorPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkGenerationComplete>(majorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkDelayedSleep>(majorPrototype, false);
+        #endregion
 
-
+        #region Medium Prototype
         entityManager.SetComponentData(mediumPrototype, LocalTransform.Identity);
         entityManager.SetComponentEnabled<Chunk>(mediumPrototype, false);
         entityManager.SetComponentData(mediumPrototype, new Chunk
@@ -128,16 +117,10 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkGeneratedMesh>(mediumPrototype, false);
         entityManager.SetComponentEnabled<EntityHasMirror>(mediumPrototype, false);
         entityManager.SetComponentEnabled<ChunkContainsParentLink>(mediumPrototype, false);
+        entityManager.SetComponentEnabled<ChunkDelayedSleep>(mediumPrototype, false);
+        #endregion
 
-        // entityManager.SetComponentEnabled<ChunkGenerationComplete>(mediumPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkRequestPopulation>(mediumPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkRequestMesh>(mediumPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkRequestLink>(mediumPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkMediumLod0Ready>(mediumPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkMediumLod0Transfered>(mediumPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkPopulationComplete>(mediumPrototype, false);
-        
-
+        #region Minor Prototype
         entityManager.SetComponentData(minorPrototype, LocalTransform.Identity);
         entityManager.SetComponentEnabled<Chunk>(minorPrototype, false);
         entityManager.SetComponentData(minorPrototype, new MinorChunk
@@ -151,18 +134,14 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkGeneratedMesh>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkGeneratedPhysicsCollider>(minorPrototype, false);
         entityManager.SetComponentEnabled<ChunkGeneratingMesh>(minorPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkRequestMesh>(minorPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkRequestPhysics>(minorPrototype, false);
-        // entityManager.SetComponentEnabled<ChunkGenerationComplete>(minorPrototype, false);
-        
-        // entityManager.SetComponentEnabled<ChunkValidMesh>(minorPrototype, false);
+        #endregion
 
         entityManager.SetName(majorPrototype, "MajorPrototype");
         entityManager.SetName(mediumPrototype, "MediumPrototype");
         entityManager.SetName(minorPrototype, "MinorPrototype");
     }
 
-    void Update()
+    void FixedUpdate()
     {
         JobHandle combinedHandle = default;
 

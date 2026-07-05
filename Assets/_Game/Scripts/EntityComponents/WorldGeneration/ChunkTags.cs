@@ -41,6 +41,11 @@ public struct ChunkContainsParentLink : IComponentData, IEnableableComponent
     // Default: False
 }
 
+public struct ChunkDelayedSleep : IComponentData, IEnableableComponent
+{
+    
+}
+
 //  Major Chunk
 //      LocalTransform
 //      ChunkActive

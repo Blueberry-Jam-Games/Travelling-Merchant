@@ -6,6 +6,7 @@ class GameStateAuthoring : MonoBehaviour
 {
     public bool majorChunkOutline = false;
     public bool mediumChunkOutline = false;
+    public bool minorChunkOutline = false;
 }
 
 class GameStateManagerBaker : Baker<GameStateAuthoring>
@@ -19,7 +20,7 @@ class GameStateManagerBaker : Baker<GameStateAuthoring>
             playerControlEnable = true,
             DEBUG_MajorChunkOutline = authoring.majorChunkOutline,
             DEBUG_MediumChunkOutline = authoring.mediumChunkOutline,
-            DEBUG_MinorChunkOutline = false,
+            DEBUG_MinorChunkOutline = authoring.minorChunkOutline,
             DEBUG_Heightmap = false
         });
     }

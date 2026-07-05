@@ -24,12 +24,12 @@ partial struct ChunkPlacementSystem : ISystem
 
         sleepingMajorChunkQuery = SystemAPI.QueryBuilder().
             WithAll<MajorChunk, Chunk>().
-            WithDisabled<ChunkActive>().
+            WithDisabled<ChunkActive, ChunkDelayedSleep>().
             Build();
 
         sleepingMediumChunkQuery = SystemAPI.QueryBuilder().
             WithAll<MediumChunk, Chunk>().
-            WithDisabled<ChunkActive>().
+            WithDisabled<ChunkActive, ChunkDelayedSleep>().
             Build();
     }
 
@@ -141,12 +141,12 @@ partial struct ChunkPlacementSystem : ISystem
                     SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(entity, false);
                     SystemAPI.SetComponentEnabled<ChunkContainsParentLink>(entity, false);
+                    SystemAPI.SetComponentEnabled<ChunkDelayedSleep>(entity, true);
                     mediumChunk.ValueRW.LoD_0 = MediumChunk.MeshTransferState.NOT_READY;
                     mediumChunk.ValueRW.LoD_1 = MediumChunk.MeshTransferState.NOT_READY;
                     mediumChunk.ValueRW.LoD_2 = MediumChunk.MeshTransferState.NOT_READY;
                     mediumChunk.ValueRW.LoD_3 = MediumChunk.MeshTransferState.NOT_READY;
                     mediumChunkMap.Remove(chunk.ValueRO.position.xz);
-                    // TOOD Add other reset stuff. Lots for medium chunks.
                 }
             }
 
