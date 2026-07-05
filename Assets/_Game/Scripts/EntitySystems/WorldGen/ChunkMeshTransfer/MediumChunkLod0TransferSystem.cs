@@ -22,15 +22,14 @@ partial class MediumChunkLod0TransferSystem : SystemBase
                 .WithEntityAccess())
         {
             if(mediumChunk.ValueRO.LoD_0 != MediumChunk.MeshTransferState.READY) continue;
-            if (!MediumChunkMirrorRegistry.Mirrors.TryGetValue(entity, out MediumChunkMirror mirror))
-                continue;
+            
+            if (!MediumChunkMirrorRegistry.Mirrors.TryGetValue(entity, out MediumChunkMirror mirror)) continue;
 
-            if (!mediumChunk.ValueRO.LOD0_Mesh.IsCreated)
-                continue;
+            if (!mediumChunk.ValueRO.LOD0_Mesh.IsCreated) continue;
 
             GenerateMesh(mediumChunk.ValueRO.LOD0_Mesh, mirror.TerrainLOD0);
 
-            mirror.newMesh = true;
+            mirror.UpdatedMesh();
 
             mediumChunk.ValueRW.LoD_0 = MediumChunk.MeshTransferState.TRANSFERED;
 

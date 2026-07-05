@@ -30,15 +30,11 @@ partial class MediumChunkLod23TransferSystem : SystemBase
                 !mediumChunk.ValueRO.LOD3_Mesh.IsCreated)
                 continue;
 
-            GenerateMesh(
-                mediumChunk.ValueRO.LOD2_Mesh,
-                mirror.TerrainLOD2);
+            GenerateMesh(mediumChunk.ValueRO.LOD2_Mesh, mirror.TerrainLOD2);
 
-            GenerateMesh(
-                mediumChunk.ValueRO.LOD3_Mesh,
-                mirror.TerrainLOD3);
+            GenerateMesh(mediumChunk.ValueRO.LOD3_Mesh, mirror.TerrainLOD3);
 
-            mirror.newMesh = true;
+            mirror.UpdatedMesh();
 
             mirror.transform.position = transform.ValueRO.Position;
 
