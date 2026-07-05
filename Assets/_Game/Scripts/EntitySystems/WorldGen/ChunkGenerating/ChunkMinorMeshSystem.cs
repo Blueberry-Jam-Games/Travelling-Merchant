@@ -2,12 +2,12 @@ using Unity.Burst;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
-using Unity.Physics;
 using Unity.Collections.LowLevel.Unsafe;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Transforms;
 using Unity.VisualScripting;
+using UnityEngine.Rendering;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
 [UpdateAfter(typeof(ChunkMediumMeshSystem))]
@@ -19,11 +19,16 @@ partial class ChunkMinorMeshSystem : SystemBase
 
     List<ComputeContainer> computeContainers = new List<ComputeContainer>();
 
+    CommandBuffer commandBuffer;
+    GraphicsFence commandBufferFence;
+    bool commandBufferInFlight;
+    int densityKernal;
+    int marchKernal;
+
     ComputeBuffer cubeMarchArray;
 
     ComponentLookup<MajorChunk> majorChunkLookup;
     ComponentLookup<MinorChunk> minorChunkLookup;
-    ComponentLookup<PhysicsCollider> physicsColliderLookup;
 
     protected override void OnCreate()
     {
@@ -43,7 +48,15 @@ partial class ChunkMinorMeshSystem : SystemBase
         majorChunkLookup = GetComponentLookup<MajorChunk>(isReadOnly: true);
 
         minorChunkLookup = GetComponentLookup<MinorChunk>(false);
-        physicsColliderLookup = GetComponentLookup<PhysicsCollider>(false);
+
+        commandBuffer = new CommandBuffer
+        {
+            name = "Minor Chunk Mesh Generation"
+        };
+        commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+
+        densityKernal = meshGenerator.FindKernel("Density");
+        marchKernal = meshGenerator.FindKernel("March");
     }
 
     protected override void OnStartRunning()
@@ -51,6 +64,7 @@ partial class ChunkMinorMeshSystem : SystemBase
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
 
         // Create compute containers. These will hold the compute buffers while they are being read back
+        if (computeContainers.Count > 0) return;
         for(int i = 0; i < chunkWorld.DispatchableShaderCount; i++)
         {
             ComputeContainer newContainer = new ComputeContainer(chunkWorld.numPointsPerAxis, threadGroupSize);
@@ -62,7 +76,6 @@ partial class ChunkMinorMeshSystem : SystemBase
     {
         // Enable - Disable
         GameState gameState = SystemAPI.GetSingleton<GameState>();
-        if(!gameState.chunkGenerationEnable) return;
 
         ChunkWorldSingleton chunkWorld = SystemAPI.GetSingleton<ChunkWorldSingleton>();
 
@@ -70,71 +83,33 @@ partial class ChunkMinorMeshSystem : SystemBase
         ref ChunkPlacementSystem chunkGeneratorSystem = ref World.Unmanaged.GetUnsafeSystemRef<ChunkPlacementSystem>(World.Unmanaged.GetExistingUnmanagedSystem<ChunkPlacementSystem>());
 
         majorChunkLookup.Update(this);
-        minorChunkLookup.Update(this);
-        physicsColliderLookup.Update(this);
+        minorChunkLookup.Update(this);       
 
-        // 
-        // Create the Mesh for a chunk requesting an update and set to Mesh Manager 
-        // 
-        foreach ((
-            RefRO<LocalTransform> transform,
-            RefRW<MinorChunk> minorChunk,
-            Entity entity
-            ) in SystemAPI.Query<
-                RefRO<LocalTransform>,
-                RefRW<MinorChunk>
-                >()
-                .WithAll<Chunk, ChunkActive>()
-                .WithDisabled<ChunkGeneratedMesh, ChunkGeneratingMesh>()
-                .WithEntityAccess())
+        if (commandBufferInFlight && commandBufferFence.passed)
         {
-            if(minorChunk.ValueRO.mediumChunk != null)
+            commandBufferInFlight = false;
+
+            foreach (ComputeContainer container in computeContainers)
             {
-                Entity mediumChunk = minorChunk.ValueRO.mediumChunk;
-                if(SystemAPI.IsComponentEnabled<ChunkPopulated>(mediumChunk))
+                if (container.generationStep == ComputeContainer.MinorChunkProgress.COMMANDS_BUFFERED)
                 {
-                    bool computeShadersOccupied = true;
-                    foreach(ComputeContainer container in computeContainers)
-                    {
-                        if(container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED)
-                        {
-                            computeShadersOccupied = false;
-                            container.Prepare(entity);
-
-                            container.Generate(meshGenerator, ref chunkWorld, transform.ValueRO.Position);
-
-                            SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(entity, true);
-
-                            break;
-                        }
-                        else
-                        {
-                            // Compute shader unavailable
-                        }
-                    }
-
-                    // If this is true, no compute shaders were found that were clear. This breaks the loop for the frame.
-                    if(computeShadersOccupied)
-                    {
-                        break;
-                    }
+                    container.BeginReadback();
                 }
-                else
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                continue;
             }
         }
 
-        foreach(ComputeContainer container in computeContainers)
+        foreach (ComputeContainer container in computeContainers)
         {
+            container.UpdateReadback();
+
             Entity chunkEntity = container.linkedMinorChunk;
-            
-            if(container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED || container.generationStep == ComputeContainer.MinorChunkProgress.BOUND) continue;
+
+            if (container.generationStep != ComputeContainer.MinorChunkProgress.TRIANGLE_READBACK_PENDING &&
+                container.generationStep != ComputeContainer.MinorChunkProgress.EMPTY_MESH &&
+                container.generationStep != ComputeContainer.MinorChunkProgress.READBACK_ERROR)
+            {
+                continue;
+            }
 
             if (chunkEntity == Entity.Null || !SystemAPI.Exists(chunkEntity))
             {
@@ -146,45 +121,126 @@ partial class ChunkMinorMeshSystem : SystemBase
             if (!minorChunkLookup.HasComponent(chunkEntity))
             {
                 container.Reset();
-                Debug.LogWarning("No Chunk Component");
+                Debug.LogWarning("No MinorChunk Component");
                 continue;
             }
-            
+
             RefRW<MinorChunk> minorChunk = minorChunkLookup.GetRefRW(chunkEntity);
 
-            if(container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
+            if (container.generationStep == ComputeContainer.MinorChunkProgress.READBACK_ERROR)
             {
-                SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, true);
+                Debug.LogError("GPU Readback Error");
+
+                SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, false);
                 SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
-                minorChunk.ValueRW.meshHighDetailValid = false;
+
                 container.Reset();
                 continue;
             }
-            else if(container.generationStep == ComputeContainer.MinorChunkProgress.READBACK_PENDING && container.readbackRequest.done)
+
+            if (container.generationStep == ComputeContainer.MinorChunkProgress.EMPTY_MESH)
             {
-                if(container.readbackRequest.hasError)
+                if (minorChunk.ValueRO.meshBlobHighDetail.IsCreated)
                 {
-                    Debug.LogError("GPU Readback Error");
+                    minorChunk.ValueRW.meshBlobHighDetail.Dispose();
+                }
+
+                minorChunk.ValueRW.meshHighDetailValid = false;
+
+                SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, true);
+                SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
+
+                container.Reset();
+                continue;
+            }
+
+            if (container.generationStep == ComputeContainer.MinorChunkProgress.TRIANGLE_READBACK_PENDING)
+            {
+                if (!container.readbackRequest.done) continue;
+
+                if (container.readbackRequest.hasError)
+                {
+                    Debug.LogError("GPU Triangle Readback Error");
+
                     SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, false);
                     SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
+
                     container.Reset();
-                    return;
+                    continue;
                 }
 
                 NativeArray<Triangle> tris = container.readbackRequest.GetData<Triangle>();
 
-                if(minorChunk.ValueRO.meshBlobHighDetail.IsCreated)
+                if (minorChunk.ValueRO.meshBlobHighDetail.IsCreated)
                 {
                     minorChunk.ValueRW.meshBlobHighDetail.Dispose();
                 }
 
                 minorChunk.ValueRW.meshBlobHighDetail = MeshBlobUtility.CreateMeshBlob(tris, tris.Length);
 
-                container.Reset();
-
                 minorChunk.ValueRW.meshHighDetailValid = true;
+
                 SystemAPI.SetComponentEnabled<ChunkGeneratedMesh>(chunkEntity, true);
                 SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(chunkEntity, false);
+
+                container.Reset();
+            }
+        }
+
+        if(!commandBufferInFlight && gameState.chunkGenerationEnable)
+        {
+            bool recordedAnyCommands = false;
+
+            commandBuffer.Clear();
+            commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+
+            foreach ((
+                RefRO<LocalTransform> transform,
+                RefRW<MinorChunk> minorChunk,
+                Entity entity
+                ) in SystemAPI.Query<
+                    RefRO<LocalTransform>,
+                    RefRW<MinorChunk>
+                    >()
+                    .WithAll<Chunk, ChunkActive>()
+                    .WithDisabled<ChunkGeneratedMesh, ChunkGeneratingMesh>()
+                    .WithEntityAccess())
+            {
+                if (minorChunk.ValueRO.mediumChunk == Entity.Null) continue;
+
+                Entity mediumChunk = minorChunk.ValueRO.mediumChunk;
+
+                if (!SystemAPI.IsComponentEnabled<ChunkPopulated>(mediumChunk)) continue;
+
+                ComputeContainer freeContainer = null;
+
+                foreach (ComputeContainer container in computeContainers)
+                {
+                    if (container.generationStep == ComputeContainer.MinorChunkProgress.CLEARED)
+                    {
+                        freeContainer = container;
+                        break;
+                    }
+                }
+
+                if (freeContainer == null) break; // No Containers available yet
+
+                freeContainer.Prepare(entity);
+
+                freeContainer.AddCommands(ref commandBuffer, ref meshGenerator, densityKernal, marchKernal, ref chunkWorld, transform.ValueRO.Position);
+
+                SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(entity, true);
+
+                recordedAnyCommands = true;
+            }
+
+            if (recordedAnyCommands)
+            {
+                commandBufferFence = commandBuffer.CreateGraphicsFence(GraphicsFenceType.AsyncQueueSynchronisation, SynchronisationStageFlags.ComputeProcessing);
+
+                Graphics.ExecuteCommandBufferAsync(commandBuffer, ComputeQueueType.Default);
+
+                commandBufferInFlight = true;
             }
         }
     }
@@ -196,6 +252,7 @@ partial class ChunkMinorMeshSystem : SystemBase
             c.Dispose();
         }
         cubeMarchArray.Dispose();
+        commandBuffer.Dispose();
     }
 }
 
@@ -225,11 +282,14 @@ public struct Triangle
     }
 }
 
+#region Compute Container
 public class ComputeContainer
 {
     public GraphicsBuffer triangleBuffer;
     public GraphicsBuffer pointBuffer;
     ComputeBuffer triCountBuffer;
+
+    CommandBuffer commandBuffer;
 
     private int numDensityThreadsPerAxis;
     private int numMarchThreadsPerAxis;
@@ -238,7 +298,8 @@ public class ComputeContainer
 
     public Entity linkedMinorChunk;
 
-    public UnityEngine.Rendering.AsyncGPUReadbackRequest readbackRequest;
+    public AsyncGPUReadbackRequest counterReadbackRequest;
+    public AsyncGPUReadbackRequest readbackRequest;
     private int triangleCount;
 
     public MinorChunkProgress generationStep;
@@ -247,9 +308,11 @@ public class ComputeContainer
     {
         CLEARED,
         BOUND,
-        MESH_GENERATED,
-        READBACK_PENDING,
-        EMPTY_MESH
+        COMMANDS_BUFFERED,
+        COUNTER_READBACK_PENDING,
+        TRIANGLE_READBACK_PENDING,
+        EMPTY_MESH,
+        READBACK_ERROR
     }
 
     public ComputeContainer(int numPointsPerAxis, int threadGroupSize)
@@ -277,22 +340,56 @@ public class ComputeContainer
         generationStep = MinorChunkProgress.CLEARED;
     }
 
+    public void AddCommands(ref CommandBuffer generator, ref ComputeShader computeShader, int densityKernel, int marchKernel, ref ChunkWorldSingleton chunkWorld, float3 position)
+    {
+        float spacing = (float)chunkWorld.minorChunkSize / (numPointsPerAxis - 1);
+
+        //
+        // Density
+        // 
+        generator.SetComputeBufferParam(computeShader, densityKernel, "points", pointBuffer);
+        generator.SetComputeIntParam(computeShader, "numPointsPerAxis", numPointsPerAxis);
+        generator.SetComputeVectorParam(computeShader, "position", new Vector4(position.x, position.y, position.z));
+        generator.SetComputeIntParam(computeShader, "seed", chunkWorld.seed);
+        generator.SetComputeFloatParam(computeShader, "spacing", spacing);
+
+        generator.DispatchCompute(computeShader, densityKernel, numDensityThreadsPerAxis, numDensityThreadsPerAxis, numDensityThreadsPerAxis);
+
+        //
+        // March
+        // 
+        generator.SetBufferCounterValue(triangleBuffer, 0);
+        generator.SetComputeBufferParam(computeShader, marchKernel, "points", pointBuffer);
+        generator.SetComputeBufferParam(computeShader, marchKernel, "triangles", triangleBuffer);
+        generator.SetComputeIntParam(computeShader, "numPointsPerAxis", numPointsPerAxis);
+        generator.SetComputeFloatParam(computeShader, "isoLevel", chunkWorld.isoLevel);
+
+        generator.DispatchCompute(computeShader, marchKernel, numMarchThreadsPerAxis, numMarchThreadsPerAxis, numMarchThreadsPerAxis);
+
+        // Size readback
+        generator.CopyCounterValue(triangleBuffer, triCountBuffer, 0);
+
+        generationStep = MinorChunkProgress.COMMANDS_BUFFERED;
+    }
+
     public void Generate(ComputeShader meshGenerator, ref ChunkWorldSingleton chunkWorld, float3 position)
     {
-        if(generationStep != MinorChunkProgress.BOUND)
-        {
-            Debug.LogWarning("Chunk was not bound to the mesh generator");
-            return;
-        }
+        // if(generationStep != MinorChunkProgress.BOUND)
+        // {
+        //     Debug.LogWarning("Chunk was not bound to the mesh generator");
+        //     return;
+        // }
         
-        RunDensityShader(meshGenerator, position, ref chunkWorld);
+        // RunDensityShader(meshGenerator, position, ref chunkWorld);
 
-        RunCubeMarch(meshGenerator, chunkWorld.isoLevel);
+        // RunCubeMarch(meshGenerator, chunkWorld.isoLevel);
 
-        //Debug.Log("Mesh Generation Completed");
-        generationStep = MinorChunkProgress.MESH_GENERATED;
+        // //Debug.Log("Mesh Generation Completed");
+        // generationStep = MinorChunkProgress.MESH_GENERATED;
 
-        BeginReadback();
+        // BeginReadback();
+        int densityKernal = meshGenerator.FindKernel("Density");
+        int marchKernal = meshGenerator.FindKernel("March");
     }
 
     public void Prepare(Entity linkedMinorChunkIn)
@@ -349,25 +446,52 @@ public class ComputeContainer
 
     public void BeginReadback()
     {
-        if(generationStep != MinorChunkProgress.MESH_GENERATED)
+        if(generationStep != MinorChunkProgress.COMMANDS_BUFFERED) return;
+
+        counterReadbackRequest = AsyncGPUReadback.Request(triCountBuffer, sizeof(int), 0);
+
+        generationStep = MinorChunkProgress.COUNTER_READBACK_PENDING;
+    }
+
+    public void UpdateReadback()
+    {
+        if (generationStep == MinorChunkProgress.COUNTER_READBACK_PENDING)
         {
+            if (!counterReadbackRequest.done) return;
+
+            if (counterReadbackRequest.hasError)
+            {
+                generationStep = MinorChunkProgress.READBACK_ERROR;
+                return;
+            }
+
+            NativeArray<int> countData = counterReadbackRequest.GetData<int>();
+
+            triangleCount = countData[0];
+
+            if (triangleCount <= 0)
+            {
+                generationStep = MinorChunkProgress.EMPTY_MESH;
+                return;
+            }
+
+            readbackRequest = AsyncGPUReadback.Request(triangleBuffer, triangleCount * UnsafeUtility.SizeOf<Triangle>(), 0);
+
+            generationStep = MinorChunkProgress.TRIANGLE_READBACK_PENDING;
             return;
         }
 
-        GraphicsBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
-        int[] triCountArray = { 0 };
-        triCountBuffer.GetData(triCountArray);
-        int count = triCountArray[0];
-
-        if (count == 0)
+        if (generationStep == MinorChunkProgress.TRIANGLE_READBACK_PENDING)
         {
-            generationStep = MinorChunkProgress.EMPTY_MESH;
-            return;
+            if (!readbackRequest.done)
+                return;
+
+            if (readbackRequest.hasError)
+            {
+                generationStep = MinorChunkProgress.READBACK_ERROR;
+                return;
+            }
         }
-
-        readbackRequest = UnityEngine.Rendering.AsyncGPUReadback.Request(triangleBuffer, count * UnsafeUtility.SizeOf<Triangle>(), 0);
-
-        generationStep = MinorChunkProgress.READBACK_PENDING;
     }
 
     public void Reset()
@@ -384,3 +508,4 @@ public class ComputeContainer
         pointBuffer.Release();
     }
 }
+#endregion

@@ -327,12 +327,6 @@ public class ChunkSpawningManager : MonoBehaviour
             currentMinorChunkCount = targetMinorChunkCount;
 
             NativeArray<UnityObjectRef<MediumChunkMirror>> mediumChunkMirrors = new NativeArray<UnityObjectRef<MediumChunkMirror>>(0, Allocator.TempJob);
-            NativeArray<int> newMeshIndexes = new NativeArray<int>(delta, Allocator.TempJob);
-
-            for(int i = 0; i < newMeshIndexes.Length; i++)
-            {
-                newMeshIndexes[i] = ChunkMeshManagerSystem.Instance.CreateEmptyMesh();
-            }
             
             JobHandle handle = new SpawnJob
             {
@@ -341,7 +335,6 @@ public class ChunkSpawningManager : MonoBehaviour
                 chunkType = SpawnJob.ChunkArchtype.MINOR,
             }.Schedule(delta, 64);
 
-            newMeshIndexes.Dispose(handle);
             mediumChunkMirrors.Dispose(handle);
 
             return handle;

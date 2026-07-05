@@ -7,7 +7,6 @@ using UnityEngine;
 
 class ChunkWorldSingletonAuthoring : MonoBehaviour
 {
-    public int renderDistance;
     public int renderDistanceMediumChunks;
 
     [Header("Chunk Sizes")]
@@ -23,17 +22,11 @@ class ChunkWorldSingletonAuthoring : MonoBehaviour
 
     public int seed;
 }
- 
+
 class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
 {
     public override void Bake(ChunkWorldSingletonAuthoring authoring)
     {
-        // Temp Storage
-        // int calculatedChunkCount = (int)math.pow(authoring.renderDistance * 2 + 1, 3) + (int)math.pow(authoring.renderDistance * 2 + 1, 2) * 4; // Revise Later
-
-        // const int majorChunkPadding = 3; // Passing multiple for chunks. Keep at 3
-        // int majorChunkRequiredCount = math.square((int)math.ceil((float) authoring.renderDistance / authoring.MinorPerMajorChunk) * majorChunkPadding + 1) * 2;
-
         var entity = GetEntity(TransformUsageFlags.None);
         AddComponent(entity, new ChunkWorldSingleton
         {

@@ -773,7 +773,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82356945e808078478a2a0f3474d5c2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  renderDistance: 10
   renderDistanceMediumChunks: 16
   minorChunkSize: 32
   minorPerMediumChunk: 4
