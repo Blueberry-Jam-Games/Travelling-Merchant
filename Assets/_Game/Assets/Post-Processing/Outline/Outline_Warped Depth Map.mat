@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Outline_Warped Depth Map
+  m_Shader: {fileID: 4800000, guid: 4649fc07f4936d2479d67380db8b3fb6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _DisplacementNoiseFrequency: 0.02
+    - _DisplacementNoiseOctaves: 3
+    - _DisplacementNoiseSeed: 1337
+    - _DisplacementPixels: 1.5
+    - _FadeEndDistance: 90
+    - _FadeStartDistance: 50
+    - _ReferenceResolutionY: 1080
+    m_Colors: []
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

@@ -24,17 +24,15 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TerrainMaterial
-  m_Shader: {fileID: -6465566751694194690, guid: ff64d9f44a332c641af4a6ee41b39719, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: d4ed10dc0b0eb344cad0cc785af8a06c, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _DISABLE_SSR_TRANSPARENT
-  m_InvalidKeywords:
-  - _NORMALMAP_TANGENT_SPACE
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2225
+  m_CustomRenderQueue: -1
   stringTagMap:
     MotionVector: User
   disabledShaderPasses:
@@ -131,6 +129,14 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_703f2e172fdc434d99201b6f8976bdd0_Out_0_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 604549275d3e8a642951bcbadb42983d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_ff5afc89298e4c9fbdcdec3d2ba42e65_Out_0_Texture2D:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _ThicknessMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -171,6 +177,7 @@ Material:
     - _AlphaRemapMax: 1
     - _AlphaRemapMin: 0
     - _AlphaSrcBlend: 1
+    - _Angle_Blend: 0
     - _Anisotropy: 0
     - _BlendMode: 0
     - _CoatMask: 0
@@ -206,7 +213,7 @@ Material:
     - _HeightMapParametrization: 0
     - _HeightMax: 1
     - _HeightMin: -1
-    - _HeightOffset: -16
+    - _HeightOffset: 2.5
     - _HeightPoMAmplitude: 2
     - _HeightTessAmplitude: 2
     - _HeightTessCenter: 0.5
@@ -220,10 +227,10 @@ Material:
     - _Metallic: 0
     - _MetallicRemapMax: 1
     - _MetallicRemapMin: 0
-    - _Noise_Scale: 2.32
-    - _Noise_Weight: 1.26
+    - _Noise_Scale: 1.57
+    - _Noise_Weight: 1
     - _NormalMapSpace: 0
-    - _NormalScale: 0.02
+    - _NormalScale: 0.1
     - _ObjectSpaceUVMapping: 0
     - _ObjectSpaceUVMappingEmissive: 0
     - _OpaqueCullMode: 2
@@ -233,13 +240,15 @@ Material:
     - _PPDPrimitiveLength: 1
     - _PPDPrimitiveWidth: 1
     - _PerPixelSorting: 0
+    - _QueueControl: 1
+    - _QueueOffset: 0
     - _RayTracing: 0
     - _ReceivesSSR: 1
     - _ReceivesSSRTransparent: 0
     - _RefractionModel: 0
     - _RenderQueueType: 1
     - _RequireSplitLighting: 0
-    - _Scale: 0.23
+    - _Scale: 0.02
     - _Smoothness: 0.152
     - _SmoothnessRemapMax: 1
     - _SmoothnessRemapMin: 0
@@ -283,6 +292,7 @@ Material:
     - _ZTestTransparent: 4
     - _ZWrite: 1
     m_Colors:
+    - _AngleBlend: {r: 0.05, g: 10.62, b: 0, a: 0}
     - _Angle_Blend: {r: -4.01, g: -2.58, b: 0, a: 0}
     - _BaseColor: {r: 0.33820632, g: 0.745283, b: 0.2917853, a: 1}
     - _Color: {r: 0.3382063, g: 0.745283, b: 0.29178527, a: 1}
@@ -301,3 +311,16 @@ Material:
     - _UVMappingMaskEmissive: {r: 1, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!114 &7300520629239172058
+MonoBehaviour:
+  m_ObjectHideFlags: 11
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Editor::UnityEditor.Rendering.Universal.AssetVersion
+  version: 10
