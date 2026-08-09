@@ -1,5 +1,7 @@
 using Unity.Entities;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 [UpdateInGroup(typeof(WorldGenerationSystemGroup))]
 [UpdateAfter(typeof(ChunkPlacementSystem))]
@@ -45,6 +47,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
                 .WithAll<ChunkActive>()
                 .WithEntityAccess())
         {
+#region Generate Hightmap
             int kernel = heightmapper.FindKernel("Heightmapper");
             heightmapper.SetBuffer(kernel, "HeightmapBuffer", heightmap);
 
@@ -76,6 +79,43 @@ partial class ChunkMajorPopulationSystem : SystemBase
 
             majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 3);
             SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, true);
+#endregion
+#region Texture Overlay
+
+            Texture2D texture = majorChunk.ValueRO.renderInformation.Value;
+
+            if (texture == null)
+            {
+                int resolution = chunkWorld.majorChunkSize * 2;
+
+                texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, 1, true)
+                {
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                majorChunk.ValueRW.renderInformation = texture;
+            }
+
+            // Clear the texture
+            var pixels = texture.GetPixelData<Color32>(0);
+
+            Color32 clearColor = new Color32(0, 0, 0, 0);
+
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = clearColor;
+            }
+
+            texture.name = "MajorChunkRenderInformation";
+
+            texture.Apply(false, false);
+
+            // Access texture
+            // majorChunk.ValueRO.renderInformation.Value.GetPixelData<Color32>(0);
+
+#endregion
+
         }
     }
 

@@ -7,12 +7,21 @@ using UnityEngine;
 [UpdateAfter(typeof(BeginSimulationEntityCommandBufferSystem))]
 partial class ChunkMediumMirrorLinkingSystem : SystemBase
 {
+    ComponentLookup<MajorChunk> majorChunkLookup = new ComponentLookup<MajorChunk>();
+    protected override void OnCreate()
+    {
+        base.OnCreate();
+        majorChunkLookup = GetComponentLookup<MajorChunk>(true);
+    }
+
     protected override void OnUpdate()
     {
         if(MediumChunkMirrorRegistry.pendingMirrors.Count <= 0)
         {
             return;
         }
+
+        majorChunkLookup.Update(this);
 
         foreach((
             RefRO<MediumChunk> mediumChunk,
@@ -27,6 +36,18 @@ partial class ChunkMediumMirrorLinkingSystem : SystemBase
             {
                 MediumChunkMirror m = MediumChunkMirrorRegistry.pendingMirrors.Dequeue();
                 MediumChunkMirrorRegistry.Mirrors.Add(e, m);
+
+                if(majorChunkLookup.TryGetComponent(mediumChunk.ValueRO.majorChunk, out MajorChunk majorChunk))
+                {
+                    if(majorChunk.renderInformation != null)
+                    {
+                        m.renderInformation = majorChunk.renderInformation;
+                    }
+                    else
+                    {
+                        Debug.LogError("Texture didn't generate properly");
+                    }   
+                }
 
                 SystemAPI.SetComponentEnabled<EntityHasMirror>(e, true);
             }

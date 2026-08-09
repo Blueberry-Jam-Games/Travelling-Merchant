@@ -7,6 +7,8 @@ public class MediumChunkMirror : MonoBehaviour
     public Mesh TerrainLOD2;
     public Mesh TerrainLOD3;
 
+    public Texture2D renderInformation;
+
     // public bool newMesh = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created

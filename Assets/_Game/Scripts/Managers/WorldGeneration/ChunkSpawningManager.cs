@@ -147,35 +147,23 @@ public class ChunkSpawningManager : MonoBehaviour
 
         if (targetMinorChunkCount != currentMinorChunkCount)
         {
-            ecbMinorChunk =
-                ecbSystem.CreateCommandBuffer().AsParallelWriter();
+            ecbMinorChunk = ecbSystem.CreateCommandBuffer().AsParallelWriter();
 
-            combinedHandle =
-                JobHandle.CombineDependencies(
-                    combinedHandle,
-                    HandleMinor());
+            combinedHandle = JobHandle.CombineDependencies(combinedHandle, HandleMinor());
         }
 
         if (targetMediumChunkCount != currentMediumChunkCount)
         {
-            ecbMediumChunk =
-                ecbSystem.CreateCommandBuffer().AsParallelWriter();
+            ecbMediumChunk = ecbSystem.CreateCommandBuffer().AsParallelWriter();
 
-            combinedHandle =
-                JobHandle.CombineDependencies(
-                    combinedHandle,
-                    HandleMedium());
+            combinedHandle = JobHandle.CombineDependencies(combinedHandle, HandleMedium());
         }
 
         if (targetMajorChunkCount != currentMajorChunkCount)
         {
-            ecbMajorChunk =
-                ecbSystem.CreateCommandBuffer().AsParallelWriter();
+            ecbMajorChunk = ecbSystem.CreateCommandBuffer().AsParallelWriter();
 
-            combinedHandle =
-                JobHandle.CombineDependencies(
-                    combinedHandle,
-                    HandleMajor());
+            combinedHandle = JobHandle.CombineDependencies(combinedHandle, HandleMajor());
         }
 
         ecbSystem.AddJobHandleForProducer(combinedHandle);

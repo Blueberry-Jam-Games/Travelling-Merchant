@@ -43,6 +43,7 @@ public struct MediumChunk : IComponentData
 public struct MajorChunk : IComponentData
 {
     public BlobAssetReference<HeightmapData> heightmapData;
+    public UnityObjectRef<Texture2D> renderInformation;
 }
 
 public struct HeightmapData
