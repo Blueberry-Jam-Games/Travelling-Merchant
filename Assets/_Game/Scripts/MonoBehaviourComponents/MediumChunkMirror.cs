@@ -7,6 +7,11 @@ public class MediumChunkMirror : MonoBehaviour
     public Mesh TerrainLOD2;
     public Mesh TerrainLOD3;
 
+    public Material MaterialLOD0;
+    public Material MaterialLOD1;
+    public Material MaterialLOD2;
+    public Material MaterialLOD3;
+
     public Texture2D renderInformation;
 
     // public bool newMesh = false;
@@ -37,6 +42,12 @@ public class MediumChunkMirror : MonoBehaviour
         LODFilters[1].mesh = TerrainLOD1;
         LODFilters[2].mesh = TerrainLOD2;
         LODFilters[3].mesh = TerrainLOD3;
+
+        MeshRenderer[] meshRenderers = transform.GetComponentsInChildren<MeshRenderer>();
+        meshRenderers[0].material.SetFloat("_MajorChunkSize", 1024);
+        meshRenderers[1].material.SetFloat("_MajorChunkSize", 1024);
+        meshRenderers[2].material.SetFloat("_MajorChunkSize", 1024);
+        meshRenderers[3].material.SetFloat("_MajorChunkSize", 1024);
     }
 
     // Update is called once per frame
@@ -69,6 +80,12 @@ public class MediumChunkMirror : MonoBehaviour
 
         LODGroup lod = transform.gameObject.GetComponent<LODGroup>();
         lod.RecalculateBounds();
+
+        MeshRenderer[] meshRenderers = transform.GetComponentsInChildren<MeshRenderer>();
+        meshRenderers[0].material.SetTexture("_DetailMap", renderInformation);
+        meshRenderers[1].material.SetTexture("_DetailMap", renderInformation);
+        meshRenderers[2].material.SetTexture("_DetailMap", renderInformation);
+        meshRenderers[3].material.SetTexture("_DetailMap", renderInformation);
 
         // newMesh = false;
     }

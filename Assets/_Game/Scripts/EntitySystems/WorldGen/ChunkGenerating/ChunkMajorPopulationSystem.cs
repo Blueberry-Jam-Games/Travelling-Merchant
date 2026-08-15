@@ -1,4 +1,6 @@
 using Unity.Entities;
+using Unity.Mathematics;
+using Unity.Transforms;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -13,9 +15,12 @@ partial class ChunkMajorPopulationSystem : SystemBase
     private int heightmapSize;
     private int heightmapResolution;
 
+    private int textureNumber = 0;
+
     protected override void OnCreate()
     {
         heightmapper = Resources.Load<ComputeShader>("ComputeShaders/Heightmapper");
+        PathResolver.SetPathData(74896123); // TODO Change to chunk world
     }
 
     protected override void OnUpdate()
@@ -38,10 +43,12 @@ partial class ChunkMajorPopulationSystem : SystemBase
         foreach ((
             RefRW<MajorChunk> majorChunk,
             RefRO<Chunk> chunk,
+            RefRO<LocalTransform> transform,
             Entity entity
             ) in SystemAPI.Query<
                 RefRW<MajorChunk>,
-                RefRO<Chunk>
+                RefRO<Chunk>,
+                RefRO<LocalTransform>
                 >()
                 .WithDisabled<ChunkPopulated>()
                 .WithAll<ChunkActive>()
@@ -81,14 +88,11 @@ partial class ChunkMajorPopulationSystem : SystemBase
             SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, true);
 #endregion
 #region Texture Overlay
-
             Texture2D texture = majorChunk.ValueRO.renderInformation.Value;
 
             if (texture == null)
             {
-                int resolution = chunkWorld.majorChunkSize * 2;
-
-                texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, 1, true)
+                texture = new Texture2D(chunkWorld.detailMapResolution, chunkWorld.detailMapResolution, TextureFormat.RGBA32, 1, true)
                 {
                     wrapMode = TextureWrapMode.Clamp,
                     filterMode = FilterMode.Bilinear
@@ -100,18 +104,50 @@ partial class ChunkMajorPopulationSystem : SystemBase
             // Clear the texture
             var pixels = texture.GetPixelData<Color32>(0);
 
-            Color32 clearColor = new Color32(0, 0, 0, 0);
+            Color32 clearColor = new Color32(0, 0, 0, 255);
+            Color32 pathColor = new Color32(0, 0, 255, 255);
 
             for (int i = 0; i < pixels.Length; i++)
             {
                 pixels[i] = clearColor;
             }
 
-            texture.name = "MajorChunkRenderInformation";
+            texture.name = "MajorChunkRenderInformation" + textureNumber;
+            textureNumber ++;
+
+            float pixelsPerUnit = chunkWorld.XZtoImageUV;
+
+            int halfWidthPixels = math.max(1, (int)math.ceil(chunkWorld.PathWidth * 0.5f * pixelsPerUnit));
+
+            // V = world X
+            for (int vPixel = 0; vPixel < texture.width; vPixel++)
+            {
+                // Convert texture X into world-space forward position.
+                float worldV = transform.ValueRO.Position.x + vPixel / pixelsPerUnit;
+
+                // Find world-space perpendicular position Z.
+                float worldU = PathResolver.GetUFromV(worldV);
+
+                // Convert world-space U into chunk-local U.
+                float localU = worldU - transform.ValueRO.Position.z;
+
+                // Convert world units into texture pixels.
+                int uPixel = (int)math.round(localU * pixelsPerUnit);
+
+                // Skip if the path is completely outside this chunk.
+                if (uPixel < -halfWidthPixels || uPixel >= texture.height + halfWidthPixels) continue;
+
+                int minU = math.max(0, uPixel - halfWidthPixels);
+
+                int maxU = math.min(texture.height - 1, uPixel + halfWidthPixels);
+
+                for (int y = minU; y <= maxU; y++)
+                {
+                    pixels[y * texture.width + vPixel] = pathColor;
+                }
+            }
 
             texture.Apply(false, false);
-
-            // Access texture
             // majorChunk.ValueRO.renderInformation.Value.GetPixelData<Color32>(0);
 
 #endregion

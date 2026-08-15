@@ -13,6 +13,8 @@ class ChunkWorldSingletonAuthoring : MonoBehaviour
     public int minorChunkSize = 32;
     public int minorPerMediumChunk = 8;
     public int mediumPerMajorChunk = 3;
+    public int detailMapResolution = 2048;
+    public float PathWidth = 4;
 
     [Header("Generation Information")]
     public float isoLevel;
@@ -37,7 +39,10 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             minorPerMajorChunk = authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk,
             mediumChunkSize = authoring.minorChunkSize * authoring.minorPerMediumChunk,
             majorChunkSize = authoring.minorChunkSize * authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk,
-            //majorChunkRenderDistance = (int)math.ceil((float) authoring.renderDistance / authoring.minorPerMediumChunk) + 1, // TODO Depricate
+            detailMapResolution = authoring.detailMapResolution,
+            XZtoImageUV = authoring.detailMapResolution / (float)(authoring.minorChunkSize * authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk),
+
+            PathWidth = authoring.PathWidth,
 
             // Render distance calculations
             renderDistanceMeters = authoring.renderDistanceMediumChunks * authoring.minorPerMediumChunk * authoring.minorChunkSize,
@@ -67,6 +72,10 @@ public struct ChunkWorldSingleton : IComponentData
     public int renderDistanceMinor;
     public int renderDistanceMedium;
     public int renderDistanceMajor;
+    public int detailMapResolution;
+    public float XZtoImageUV;
+
+    public float PathWidth;
 
     public int DispatchableShaderCount; // Count of dispatchable compute shaders can exist for chunks. Higher numbers allow more chunks to run at a time.
 

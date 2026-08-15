@@ -143,6 +143,11 @@ MonoBehaviour:
   TerrainLOD1: {fileID: 0}
   TerrainLOD2: {fileID: 0}
   TerrainLOD3: {fileID: 0}
+  MaterialLOD0: {fileID: 0}
+  MaterialLOD1: {fileID: 0}
+  MaterialLOD2: {fileID: 0}
+  MaterialLOD3: {fileID: 0}
+  renderInformation: {fileID: 0}
 --- !u!205 &8383486153105726412
 LODGroup:
   m_ObjectHideFlags: 0
