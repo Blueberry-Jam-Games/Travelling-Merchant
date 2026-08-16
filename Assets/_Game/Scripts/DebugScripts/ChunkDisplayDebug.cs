@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class ChunkDisplayDebug : MonoBehaviour
 {
+
+    private const int displayHeightmapCount = 4;
     void OnDrawGizmos()
     {
         if (!Application.isPlaying)
@@ -111,6 +113,7 @@ public class ChunkDisplayDebug : MonoBehaviour
         {
             using (var entities = majorQuery.ToEntityArray(Unity.Collections.Allocator.Temp))
             {
+                int displayedCount = 0;
                 float3 shrink = new float3(0.06f, 0.06f, 0.06f);
                 foreach (var entity in entities)
                 {
@@ -123,22 +126,53 @@ public class ChunkDisplayDebug : MonoBehaviour
                         Gizmos.DrawWireCube(corner1, size);
                     }
 
-                    if(gameState.DEBUG_Heightmap)
+                    if(gameState.DEBUG_Heightmap && displayedCount < displayHeightmapCount)
                     {
+                        displayedCount ++;
                         MajorChunk majorChunk = em.GetComponentData<MajorChunk>(entity);
 
                         if(em.IsComponentEnabled<ChunkPopulated>(entity))
                         {
                             int heightmapSize = majorChunk.heightmapData.Value.resolution - 1;
-                            for(int x = 0; x < heightmapSize; x += chunkWorld.minorPerMediumChunk)
+
+                            for (int x = 0; x < heightmapSize; x += chunkWorld.minorPerMediumChunk)
                             {
-                                for(int y = 0; y < heightmapSize; y += 1 /*chunkWorld.minorPerMediumChunk*/)
+                                for (int y = 0; y < heightmapSize; y += 1 /* chunkWorld.minorPerMediumChunk */)
                                 {
+                                    float height = majorChunk.heightmapData.Value.GetHeight(x, y);
+                                    float2 gradient = majorChunk.heightmapData.Value.GetGradient(x, y);
+
                                     Vector3 position = localTransform.Position;
-                                    position += new Vector3(x * chunkWorld.minorChunkSize, majorChunk.heightmapData.Value.GetHeight(x, y), y * chunkWorld.minorChunkSize);
+                                    position += new Vector3(
+                                        x * chunkWorld.minorChunkSize,
+                                        height,
+                                        y * chunkWorld.minorChunkSize
+                                    );
+
+                                    float gradientMagnitude = math.length(gradient);
+
+                                    Vector3 surfaceDirection = Vector3.zero;
+
+                                    if (gradientMagnitude > 0.000001f)
+                                    {
+                                        float2 horizontalDirection = gradient / gradientMagnitude;
+
+                                        surfaceDirection = new Vector3(
+                                            horizontalDirection.x,
+                                            gradientMagnitude,
+                                            horizontalDirection.y
+                                        ).normalized;
+                                    }
+
+                                    const float gizmoLength = 10f;
+
+                                    Vector3 gradientEnd = position + surfaceDirection * gizmoLength;
 
                                     Gizmos.color = Color.crimson;
-                                    Gizmos.DrawSphere(position, 5f);
+                                    Gizmos.DrawSphere(position, 2f);
+
+                                    Gizmos.color = Color.yellowNice;
+                                    Gizmos.DrawLine(position, gradientEnd);
                                 }
                             }
                         }

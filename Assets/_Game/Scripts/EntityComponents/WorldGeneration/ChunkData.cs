@@ -50,16 +50,22 @@ public struct HeightmapData
 {
     public int resolution;
     public BlobArray<float> heights;
+    public BlobArray<float2> gradients;
 
     public float GetHeight(int x, int y)
     {
         return heights[x + 1 + (y + 1) * resolution];
     }
+
+    public float2 GetGradient(int x, int y)
+    {
+        return gradients[x + 1 + (y + 1) * resolution];
+    }
 }
 
 public static class HeightmapDataBlobBuilder
 {
-    public static BlobAssetReference<HeightmapData> Create(float[] heights, int resolution)
+    public static BlobAssetReference<HeightmapData> Create(float[] heights, float2[] gradients, int resolution)
     {
         var builder = new BlobBuilder(Allocator.Temp);
         ref HeightmapData root = ref builder.ConstructRoot<HeightmapData>();
@@ -68,11 +74,13 @@ public static class HeightmapDataBlobBuilder
 
         var heightArray = builder.Allocate(ref root.heights, heights.Length);
 
-        for (int i = 0; i < heights.Length; i++)
-            heightArray[i] = heights[i];
+        for (int i = 0; i < heights.Length; i++) heightArray[i] = heights[i];
 
-        var blob = builder.CreateBlobAssetReference<HeightmapData>(
-            Allocator.Persistent);
+        var gradientArray = builder.Allocate(ref root.gradients, gradients.Length);
+
+        for (int i = 0; i < heights.Length; i++) gradientArray[i] = gradients[i];
+
+        var blob = builder.CreateBlobAssetReference<HeightmapData>(Allocator.Persistent);
 
         builder.Dispose();
         return blob;

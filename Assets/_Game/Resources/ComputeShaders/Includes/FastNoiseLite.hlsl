@@ -104,6 +104,15 @@ typedef int fnl_domain_warp_type;
     #define FNL_UNROLL
 #endif
 
+ /**
+ * Return data for a noise function with gradient
+ */
+struct fnl_noise2d_gradient
+{
+    float value;
+    float2 gradient;
+};
+
 /**
  * Structure containing entire noise system state.
  * @note Must only be created using fnlCreateState(optional: seed). To ensure defaults are set.
@@ -215,6 +224,12 @@ fnl_state fnlCreateState(int seed = 1337);
  * @returns Noise output bounded between -1 and 1.
  */
 float fnlGetNoise2D(fnl_state state, FNLfloat x, FNLfloat y);
+
+/**
+ * 2D noise at given position using the state settings with gradient
+ * @returns Noise output bounded between -1 and 1.
+ */
+fnl_noise2d_gradient fnlGetNoise2DWithGradient(fnl_state state, FNLfloat x, FNLfloat y);
 
 /**
  * 3D noise at given position using the state settings
@@ -467,6 +482,35 @@ static inline float _fnlGradCoord2D(int seed, int xPrimed, int yPrimed, float xd
     return xd * GRADIENTS_2D[hash] + yd * GRADIENTS_2D[hash | 1];
 }
 
+// Added to the project
+static inline float _fnlGradCoord2DWithGradient(int seed, int xPrimed, int yPrimed, float xd, float yd, out float2 gradient)
+{
+    int hash = _fnlHash2D(seed, xPrimed, yPrimed);
+    hash ^= hash >> 15;
+    hash &= 127 << 1;
+
+    gradient = float2(GRADIENTS_2D[hash], GRADIENTS_2D[hash | 1]);
+
+    return xd * gradient.x + yd * gradient.y;
+}
+
+static inline void _fnlAccumulateSimplex2DGradient(int seed, int xPrimed, int yPrimed, float xd, float yd, float attenuation, inout float value, inout float2 gradient)
+{
+    if (attenuation <= 0.0f) return;
+
+    float2 latticeGradient;
+
+    float extrapolation = _fnlGradCoord2DWithGradient(seed, xPrimed, yPrimed, xd, yd, latticeGradient);
+
+    float a2 = attenuation * attenuation;
+    float a3 = a2 * attenuation;
+    float a4 = a2 * a2;
+
+    value += a4 * extrapolation;
+
+    gradient += a4 * latticeGradient - 8.0f * a3 * extrapolation * float2(xd, yd);
+}
+
 static inline float _fnlGradCoord3D(int seed, int xPrimed, int yPrimed, int zPrimed, float xd, float yd, float zd)
 {
     int hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed);
@@ -532,6 +576,7 @@ static inline void _fnlGradCoordDual3D(int seed, int xPrimed, int yPrimed, int z
 // Generic Noise Gen
 
 static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y);
+static fnl_noise2d_gradient _fnlSingleSimplex2DWithGradient(int seed, FNLfloat x, FNLfloat y);
 static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat z);
 static float _fnlSingleOpenSimplex2S2D(int seed, FNLfloat x, FNLfloat y);
 static float _fnlSingleOpenSimplex2S3D(int seed, FNLfloat x, FNLfloat y, FNLfloat z);
@@ -745,6 +790,56 @@ static float _fnlGenFractalFBM2D(fnl_state state, FNLfloat x, FNLfloat y)
     return sum;
 }
 
+static fnl_noise2d_gradient _fnlGenFractalFBM2DWithGradient(fnl_state state, FNLfloat x, FNLfloat y)
+{
+    int seed = state.seed;
+
+    fnl_noise2d_gradient result;
+
+    result.value = 0.0f;
+    result.gradient = float2(0.0f, 0.0f);
+
+    float amp = _fnlCalculateFractalBounding(state);
+
+    float2 ampGradient = float2(0.0f, 0.0f);
+
+    float coordinateScale = 1.0f;
+
+    for (int octave = 0; octave < state.octaves; octave++)
+    {
+        fnl_noise2d_gradient sample = _fnlSingleSimplex2DWithGradient(seed++, x, y);
+
+        // Convert derivative from current octave
+        // coordinates back to the base FBM coordinates.
+        float2 noiseGradientBase = sample.gradient * coordinateScale;
+
+        result.value += sample.value * amp;
+
+        result.gradient += amp * noiseGradientBase + sample.value * ampGradient;
+
+        float weightedNoise = _fnlFastMin(sample.value + 1.0f, 2.0f) * 0.5f;
+
+        float weight = _fnlLerp(1.0f, weightedNoise, state.weighted_strength);
+
+        float dWeightDNoise = (sample.value < 1.0f)? (0.5f * state.weighted_strength) : 0.0f;
+
+        float2 nextAmpGradient = ampGradient * weight + amp * dWeightDNoise * noiseGradientBase;
+
+        amp *= weight;
+
+        x *= state.lacunarity;
+        y *= state.lacunarity;
+
+        coordinateScale *= state.lacunarity;
+
+        amp *= state.gain;
+
+        ampGradient = nextAmpGradient * state.gain;
+    }
+
+    return result;
+}
+
 static float _fnlGenFractalFBM3D(fnl_state state, FNLfloat x, FNLfloat y, FNLfloat z)
 {
     int seed = state.seed;
@@ -853,7 +948,7 @@ static float _fnlGenFractalPingPong3D(fnl_state state, FNLfloat x, FNLfloat y, F
 }
 
 // Simplex/OpenSimplex2 Noise
-
+// USED BY PROGRAM
 static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
 {
     // 2D OpenSimplex2 case uses the same algorithm as ordinary Simplex.
@@ -926,6 +1021,104 @@ static float _fnlSingleSimplex2D(int seed, FNLfloat x, FNLfloat y)
     }
 
     return (n0 + n1 + n2) * 99.83685446303647f;
+}
+
+static fnl_noise2d_gradient _fnlSingleSimplex2DWithGradient(int seed, FNLfloat x, FNLfloat y)
+{
+    const float SQRT3 = 1.7320508075688772935274463415059f;
+
+    const float G2 = (3.0f - SQRT3) / 6.0f;
+
+    int i = _fnlFastFloor(x);
+    int j = _fnlFastFloor(y);
+
+    float xi = (float)(x - i);
+    float yi = (float)(y - j);
+
+    float t = (xi + yi) * G2;
+
+    float x0 = xi - t;
+    float y0 = yi - t;
+
+    i *= PRIME_X;
+    j *= PRIME_Y;
+
+    float value = 0.0f;
+
+    // This gradient is initially with respect to the
+    // simplex-unskewed coordinates x0/y0.
+    float2 gradientUnskewed = float2(0.0f, 0.0f);
+
+    // ------------------------------------------------
+    // Corner 0
+    // ------------------------------------------------
+    float a = 0.5f - x0 * x0 - y0 * y0;
+
+    _fnlAccumulateSimplex2DGradient(seed, i, j, x0, y0, a, value, gradientUnskewed);
+
+    // ------------------------------------------------
+    // Corner 2
+    // ------------------------------------------------
+    float c = (float)(2 * (1 - 2 * G2) * (1 / G2 - 2)) * t + ((float)(-2 * (1 - 2 * G2) * (1 - 2 * G2)) + a);
+
+    float x2 = x0 + (2.0f * G2 - 1.0f);
+
+    float y2 = y0 + (2.0f * G2 - 1.0f);
+
+    _fnlAccumulateSimplex2DGradient(seed, i + PRIME_X, j + PRIME_Y, x2, y2, c, value, gradientUnskewed);
+
+    // ------------------------------------------------
+    // Corner 1
+    // ------------------------------------------------
+    if (y0 > x0)
+    {
+        float x1 = x0 + G2;
+
+        float y1 = y0 + (G2 - 1.0f);
+
+        float b = 0.5f - x1 * x1 - y1 * y1;
+
+        _fnlAccumulateSimplex2DGradient(seed, i, j + PRIME_Y, x1, y1, b, value, gradientUnskewed);
+    }
+    else
+    {
+        float x1 = x0 + (G2 - 1.0f);
+
+        float y1 = y0 + G2;
+
+        float b = 0.5f - x1 * x1 - y1 * y1;
+
+        _fnlAccumulateSimplex2DGradient(seed, i + PRIME_X, j, x1, y1, b, value, gradientUnskewed);
+    }
+
+    // ------------------------------------------------
+    // Convert derivative from simplex-unskewed
+    // coordinates back to the coordinates supplied
+    // to _fnlSingleSimplex2DWithGradient().
+    //
+    // x0 = (1-G2)x - G2y + C
+    // y0 = -G2x + (1-G2)y + C
+    // ------------------------------------------------
+
+    float oneMinusG2 = 1.0f - G2;
+
+    float2 gradientSkewed;
+
+    gradientSkewed.x = oneMinusG2 * gradientUnskewed.x - G2 * gradientUnskewed.y;
+
+    gradientSkewed.y = -G2 * gradientUnskewed.x + oneMinusG2 * gradientUnskewed.y;
+
+    // Same normalization as the original
+    // _fnlSingleSimplex2D().
+    const float NORMALIZATION = 99.83685446303647f;
+
+    fnl_noise2d_gradient result;
+
+    result.value = value * NORMALIZATION;
+
+    result.gradient = gradientSkewed * NORMALIZATION;
+
+    return result;
 }
 
 static float _fnlSingleOpenSimplex23D(int seed, FNLfloat x, FNLfloat y, FNLfloat z)
@@ -2271,6 +2464,65 @@ float fnlGetNoise2D(fnl_state state, FNLfloat x, FNLfloat y)
     case FNL_FRACTAL_PINGPONG:
         return _fnlGenFractalPingPong2D(state, x, y);
     }
+}
+
+fnl_noise2d_gradient fnlGetNoise2DWithGradient(fnl_state state, FNLfloat x, FNLfloat y)
+{
+    FNLfloat inputX = x;
+    FNLfloat inputY = y;
+
+    _fnlTransformNoiseCoordinate2D(state, x, y);
+
+    fnl_noise2d_gradient result;
+
+    if (state.noise_type != FNL_NOISE_OPENSIMPLEX2)
+    {
+        result.value = fnlGetNoise2D(state, inputX, inputY);
+
+        result.gradient = float2(0.0f, 0.0f);
+
+        return result;
+    }
+
+    FNL_FLATTEN switch (state.fractal_type)
+    {
+        default:
+        {
+            if (state.fractal_type == FNL_FRACTAL_NONE)
+            {
+                result = _fnlSingleSimplex2DWithGradient(state.seed, x, y);
+            }
+            else
+            {
+                result.value = fnlGetNoise2D(state, inputX, inputY);
+
+                result.gradient = float2(0.0f, 0.0f);
+
+                return result;
+            }
+
+            break;
+        }
+
+        case FNL_FRACTAL_FBM:
+        {
+            result = _fnlGenFractalFBM2DWithGradient(state, x, y);
+
+            break;
+        }
+    }
+
+    const float SQRT3 = 1.7320508075688772935274463415059f;
+
+    const float F2 = 0.5f * (SQRT3 - 1.0f);
+
+    float2 transformedGradient = result.gradient;
+
+    result.gradient.x = state.frequency * ((1.0f + F2) * transformedGradient.x + F2 * transformedGradient.y);
+
+    result.gradient.y = state.frequency * (F2 * transformedGradient.x + (1.0f + F2) * transformedGradient.y);
+
+    return result;
 }
 
 float fnlGetNoise3D(fnl_state state, FNLfloat x, FNLfloat y, FNLfloat z)

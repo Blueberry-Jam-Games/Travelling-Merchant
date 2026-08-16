@@ -2,6 +2,7 @@
 #include "/Includes/HeightFromPos.hlsl"
 
 RWStructuredBuffer<float> HeightmapBuffer;
+RWStructuredBuffer<float2> GradientBuffer;
 
 int4 chunkPosition;
 int heightmapResolution;
@@ -23,7 +24,12 @@ void Heightmapper(uint3 id : SV_DispatchThreadID)
 
     float2 pos = (float2(id.x, id.y) + float2(chunkOffset, chunkOffset)) * minorChunkSize + chunkBase;
 
-    float height = GetTerrainHeight(pos, seed);
+    float height;
+    float2 gradientXZ;
+
+    GetTerrainHeightAndGradient(pos, seed, height, gradientXZ);
 
     HeightmapBuffer[index] = height;
+
+    GradientBuffer[index] = gradientXZ;
 }

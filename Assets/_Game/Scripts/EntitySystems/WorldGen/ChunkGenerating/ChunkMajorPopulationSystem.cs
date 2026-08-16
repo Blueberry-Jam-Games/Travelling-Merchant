@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -11,6 +12,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
 {
     public ComputeShader heightmapper;
     private ComputeBuffer heightmap;
+    private ComputeBuffer gradientMap;
     //private ComputeBuffer normalmap;
     private int heightmapSize;
     private int heightmapResolution;
@@ -38,6 +40,11 @@ partial class ChunkMajorPopulationSystem : SystemBase
             heightmap = new ComputeBuffer(heightmapSize, sizeof(float));
         }
 
+        if(gradientMap == null)
+        {
+            gradientMap = new ComputeBuffer(heightmapSize, sizeof(float) * 2);
+        }
+
         if(!gameState.chunkGenerationEnable) return;
 
         foreach ((
@@ -57,6 +64,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
 #region Generate Hightmap
             int kernel = heightmapper.FindKernel("Heightmapper");
             heightmapper.SetBuffer(kernel, "HeightmapBuffer", heightmap);
+            heightmapper.SetBuffer(kernel, "GradientBuffer", gradientMap);
 
             heightmapper.SetInts("chunkPosition", chunk.ValueRO.position.x, chunk.ValueRO.position.z);
             heightmapper.SetInt("chunkOffset", -1);
@@ -77,14 +85,16 @@ partial class ChunkMajorPopulationSystem : SystemBase
             heightmapper.Dispatch(kernel, groupsX, groupsY, 1);
 
             float[] heights = new float[heightmapSize];
+            float2[] gradients = new float2[heightmapSize];
             heightmap.GetData(heights);
+            gradientMap.GetData(gradients);
 
             if(majorChunk.ValueRO.heightmapData.IsCreated)
             {
                 majorChunk.ValueRW.heightmapData.Dispose();
             }
 
-            majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, chunkWorld.minorPerMajorChunk + 3);
+            majorChunk.ValueRW.heightmapData = HeightmapDataBlobBuilder.Create(heights, gradients, chunkWorld.minorPerMajorChunk + 3);
             SystemAPI.SetComponentEnabled<ChunkPopulated>(entity, true);
 #endregion
 #region Texture Overlay
@@ -149,7 +159,6 @@ partial class ChunkMajorPopulationSystem : SystemBase
 
             texture.Apply(false, false);
             // majorChunk.ValueRO.renderInformation.Value.GetPixelData<Color32>(0);
-
 #endregion
 
         }

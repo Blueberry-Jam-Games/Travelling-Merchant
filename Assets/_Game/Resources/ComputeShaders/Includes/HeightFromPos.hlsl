@@ -11,6 +11,7 @@ fnl_state CreateTerrainNoise(int seed)
     state.octaves = 7;
     state.lacunarity = 2.78;
     state.gain = 0.53;
+    state.seed = seed;
 
     return state;
 }
@@ -28,4 +29,19 @@ float GetTerrainHeight(float2 worldXZ, int seed)
     n = n * 0.5;
 
     return n * worldHeight;
+}
+
+void GetTerrainHeightAndGradient(float2 worldXZ, int seed, out float height, out float2 gradientXZ)
+{
+    worldXZ += float2(0.5, 0.5);
+
+    fnl_state noise = CreateTerrainNoise(seed);
+
+    fnl_noise2d_gradient sample = fnlGetNoise2DWithGradient(noise, worldXZ.x, worldXZ.y);
+
+    float heightScale = 0.5f * worldHeight;
+
+    height = sample.value * heightScale;
+
+    gradientXZ = sample.gradient * heightScale;
 }
