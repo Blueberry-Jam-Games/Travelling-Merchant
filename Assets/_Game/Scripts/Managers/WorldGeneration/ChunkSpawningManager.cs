@@ -53,7 +53,9 @@ public class ChunkSpawningManager : MonoBehaviour
             typeof(MajorChunk),
             typeof(ChunkActive),
             typeof(ChunkPopulated),
-            typeof(ChunkDelayedSleep)
+            typeof(ChunkDelayedSleep),
+            typeof(ChunkPopulating),
+            typeof(ChunkConfigured)
         );
 
         var mediumArchtype = entityManager.CreateArchetype(
@@ -95,6 +97,8 @@ public class ChunkSpawningManager : MonoBehaviour
         entityManager.SetComponentEnabled<ChunkActive>(majorPrototype, false);
         entityManager.SetComponentEnabled<ChunkPopulated>(majorPrototype, false);
         entityManager.SetComponentEnabled<ChunkDelayedSleep>(majorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkPopulating>(majorPrototype, false);
+        entityManager.SetComponentEnabled<ChunkConfigured>(majorPrototype, false);
         #endregion
 
         #region Medium Prototype

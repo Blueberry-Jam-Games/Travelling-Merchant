@@ -2,6 +2,19 @@ using Unity.Burst;
 using Unity.Mathematics;
 
 [BurstCompile]
+
+public struct PathBoundaryPoint
+    {
+        public float2 position;
+        public float2 perpendicular;
+
+        public PathBoundaryPoint(float2 position, float2 perpendicular)
+        {
+            this.position = position;
+            this.perpendicular = perpendicular;
+        }
+    }
+
 public static class PathResolver
 {
     private struct PathContext {}
@@ -131,6 +144,106 @@ public static class PathResolver
         }
 
         v = 0f;
+        return false;
+    }
+
+    [BurstCompile]
+    public static bool TryGetChunkIntersections(float2 chunkMin, float chunkSize, out PathBoundaryPoint entrance, out PathBoundaryPoint exit)
+    {
+        const int scanSteps = 32;
+        const int refinementSteps = 12;
+
+        float minV = chunkMin.x;
+        float maxV = chunkMin.x + chunkSize;
+        float minU = chunkMin.y;
+        float maxU = chunkMin.y + chunkSize;
+
+        entrance = default;
+        exit = default;
+
+        bool foundEntrance = false;
+
+        float previousV = minV;
+        float previousU = GetUFromV(previousV);
+        bool previousInside = previousU >= minU && previousU <= maxU;
+
+        if(previousInside)
+        {
+            entrance = new PathBoundaryPoint(new float2(minV, previousU), new float2(1f, 0f));
+            foundEntrance = true;
+        }
+
+        for(int i = 1; i <= scanSteps; i++)
+        {
+            float currentV = math.lerp(minV, maxV, (float)i / scanSteps);
+            float currentU = GetUFromV(currentV);
+            bool currentInside = currentU >= minU && currentU <= maxU;
+
+            if(!previousInside && currentInside && !foundEntrance)
+            {
+                float boundaryU = previousU < minU ? minU : maxU;
+                float lowV = previousV;
+                float highV = currentV;
+                float lowDifference = GetUFromV(lowV) - boundaryU;
+
+                for(int j = 0; j < refinementSteps; j++)
+                {
+                    float midV = (lowV + highV) * 0.5f;
+                    float midDifference = GetUFromV(midV) - boundaryU;
+
+                    if((lowDifference < 0f && midDifference < 0f) || (lowDifference > 0f && midDifference > 0f))
+                    {
+                        lowV = midV;
+                        lowDifference = midDifference;
+                    }
+                    else highV = midV;
+                }
+
+                float crossingV = (lowV + highV) * 0.5f;
+                float2 perpendicular = boundaryU == minU ? new float2(0f, 1f) : new float2(0f, -1f);
+
+                entrance = new PathBoundaryPoint(new float2(crossingV, boundaryU), perpendicular);
+                foundEntrance = true;
+            }
+
+            if(previousInside && !currentInside && foundEntrance)
+            {
+                float boundaryU = currentU < minU ? minU : maxU;
+                float lowV = previousV;
+                float highV = currentV;
+                float lowDifference = GetUFromV(lowV) - boundaryU;
+
+                for(int j = 0; j < refinementSteps; j++)
+                {
+                    float midV = (lowV + highV) * 0.5f;
+                    float midDifference = GetUFromV(midV) - boundaryU;
+
+                    if((lowDifference < 0f && midDifference < 0f) || (lowDifference > 0f && midDifference > 0f))
+                    {
+                        lowV = midV;
+                        lowDifference = midDifference;
+                    }
+                    else highV = midV;
+                }
+
+                float crossingV = (lowV + highV) * 0.5f;
+                float2 perpendicular = boundaryU == minU ? new float2(0f, -1f) : new float2(0f, 1f);
+
+                exit = new PathBoundaryPoint(new float2(crossingV, boundaryU), perpendicular);
+                return true;
+            }
+
+            previousV = currentV;
+            previousU = currentU;
+            previousInside = currentInside;
+        }
+
+        if(foundEntrance && previousInside)
+        {
+            exit = new PathBoundaryPoint(new float2(maxV, previousU), new float2(1f, 0f));
+            return true;
+        }
+
         return false;
     }
 }

@@ -778,6 +778,7 @@ MonoBehaviour:
   minorPerMediumChunk: 4
   mediumPerMajorChunk: 8
   detailMapResolution: 2048
+  tensorFieldResolution: 1024
   PathWidth: 16
   isoLevel: 0
   numPointsPerAxis: 17
@@ -797,8 +798,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameStateAuthoring
   majorChunkOutline: 1
-  mediumChunkOutline: 1
-  minorChunkOutline: 1
+  mediumChunkOutline: 0
+  minorChunkOutline: 0
 --- !u!1 &1951577320
 GameObject:
   m_ObjectHideFlags: 0
@@ -919,7 +920,7 @@ Transform:
   m_GameObject: {fileID: 2016866238}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 10, z: 0}
+  m_LocalPosition: {x: 0, y: 656.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

@@ -35,6 +35,16 @@ partial struct GravityEnable : ISystem
             return;
         }
 
+        foreach(
+            RefRO<MajorChunk> chunk
+            in SystemAPI.Query<
+                RefRO<MajorChunk>
+                >()
+                .WithAll<ChunkPopulating>())
+        {
+            return;
+        }
+
         foreach (
         RefRW<PhysicsGravityFactor> gravity
         in SystemAPI.Query<

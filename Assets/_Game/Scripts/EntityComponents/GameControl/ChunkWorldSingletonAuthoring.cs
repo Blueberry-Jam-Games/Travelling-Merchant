@@ -14,6 +14,7 @@ class ChunkWorldSingletonAuthoring : MonoBehaviour
     public int minorPerMediumChunk = 8;
     public int mediumPerMajorChunk = 3;
     public int detailMapResolution = 2048;
+    public int tensorFieldResolution = 2048;
     public float PathWidth = 4;
 
     [Header("Generation Information")]
@@ -40,6 +41,7 @@ class ChunkWorldSingletonAuthoringBaker : Baker<ChunkWorldSingletonAuthoring>
             mediumChunkSize = authoring.minorChunkSize * authoring.minorPerMediumChunk,
             majorChunkSize = authoring.minorChunkSize * authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk,
             detailMapResolution = authoring.detailMapResolution,
+            TensorFieldResolution = authoring.tensorFieldResolution,
             XZtoImageUV = authoring.detailMapResolution / (float)(authoring.minorChunkSize * authoring.minorPerMediumChunk * authoring.mediumPerMajorChunk),
 
             PathWidth = authoring.PathWidth,
@@ -73,6 +75,7 @@ public struct ChunkWorldSingleton : IComponentData
     public int renderDistanceMedium;
     public int renderDistanceMajor;
     public int detailMapResolution;
+    public int TensorFieldResolution;
     public float XZtoImageUV;
 
     public float PathWidth;

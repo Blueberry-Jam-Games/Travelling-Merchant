@@ -5,6 +5,18 @@ public struct ChunkActive : IComponentData, IEnableableComponent
     // Chunk is not sleeping. All tags must be in default state when this is false
 }
 
+public struct ChunkConfigured : IComponentData, IEnableableComponent
+{
+    // Chunk has jobs running to generate the tensor field
+    // Default: False
+}
+
+public struct ChunkPopulating : IComponentData, IEnableableComponent
+{
+    // Chunk has jobs running to generate the tensor field
+    // Default: False
+}
+
 public struct ChunkPopulated : IComponentData, IEnableableComponent
 {
     // Chunk has heightmap, structure or other data generated

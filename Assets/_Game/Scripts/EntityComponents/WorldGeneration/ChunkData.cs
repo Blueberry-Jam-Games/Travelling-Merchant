@@ -61,6 +61,13 @@ public struct HeightmapData
     {
         return gradients[x + 1 + (y + 1) * resolution];
     }
+
+    public float2 GetGradientAtIndex(int i)
+    {
+        int y = i / (resolution - 2);
+        int x = i % (resolution - 2);
+        return GetGradient(x, y);
+    }
 }
 
 public static class HeightmapDataBlobBuilder
