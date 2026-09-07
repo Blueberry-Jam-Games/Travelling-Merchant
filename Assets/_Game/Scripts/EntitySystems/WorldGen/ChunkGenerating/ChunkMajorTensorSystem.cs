@@ -182,44 +182,6 @@ partial class ChunkMajorTensorSystem : SystemBase
             if(container.Path.IsCreated) container.Path.Dispose();
             if(container.Contours.IsCreated) container.Contours.Dispose();
 
-            // NativeArray<Color32> pixels = new NativeArray<Color32>(container.TensorField.Length, Allocator.Temp);
-
-            // for(int p = 0; p < container.TensorField.Length; p++)
-            // {
-            //     float4 tensor = container.TensorField[p];
-            //     tensor = math.saturate(tensor * 0.5f + 0.5f);
-
-            //     pixels[p] = new Color32((byte)(tensor.x * 255f), (byte)(tensor.y * 255f), (byte)(tensor.z * 255f), (byte)(tensor.w * 255f));
-            // }
-
-            // Texture2D outputImage = new Texture2D(container.TensorFieldResolution, container.TensorFieldResolution, TextureFormat.RGBA32, false);
-            // outputImage.SetPixelData(pixels, 0);
-            // outputImage.Apply();
-
-            // string directory = Path.Combine(Application.dataPath, "TensorDebug");
-            // Directory.CreateDirectory(directory);
-
-            // string filename = $"Tensor_{container.MajorChunk.Index}_{container.MajorChunk.Version}.png";
-            // File.WriteAllBytes(Path.Combine(directory, filename), outputImage.EncodeToPNG());
-
-            // Object.Destroy(outputImage);
-            // pixels.Dispose();
-
-            // container.TensorField.Dispose();
-            // container.Path.Dispose
-            // TensorContainers.RemoveAt(i);
-
-            // String debugLog = $"<b>Chunk {container.pos}</b>\n";
-
-            // int a = 0;
-            // foreach(ContourLine c in container.Contours)
-            // {
-            //     debugLog += $"{a}: {c.line.start} to {c.line.end} \n    <i>Next: {c.next} Prev: {c.previous}</i>\n";
-            //     a++;
-            // }
-
-            // Debug.Log(debugLog);
-
             pathGenerationContainer.RemoveAt(i);
 
             SystemAPI.SetComponentEnabled<ChunkPopulating>(container.MajorChunk, false);
@@ -389,6 +351,7 @@ partial class ChunkMajorTensorSystem : SystemBase
         }
     }
 
+#region To Replace
     [BurstCompile]
     public struct PathGenerationJob : IJob
     {
@@ -447,7 +410,7 @@ partial class ChunkMajorTensorSystem : SystemBase
 
             bool usingMinor = false;
 
-            int maxSteps = math.max(16, (int)math.ceil(initialDistance / (StepSize * math.max(MinimumExitAlignment, 0.05f))) + 32);
+            int maxSteps = math.max(16, (int)math.ceil(initialDistance / (StepSize * math.max(MinimumExitAlignment, 0.05f))) + 32); // Useless
 
             Path.Add(current);
 
@@ -666,10 +629,8 @@ partial class ChunkMajorTensorSystem : SystemBase
             float2 start = WorldToDetail.Convert(worldStart - ChunkOrigin);
             float2 end = WorldToDetail.Convert(worldEnd - ChunkOrigin);
 
-            float pixelScale = WorldToDetail.targetScale / WorldToDetail.sourceScale;
-
-            float halfWidth = PathHalfWidth * pixelScale;
-            float feather = PathFeather * pixelScale;
+            float halfWidth = PathHalfWidth * WorldToDetail.Rescale();
+            float feather = PathFeather * WorldToDetail.Rescale();
             float outerWidth = halfWidth + feather;
 
             int resolution = (int)WorldToDetail.targetScale + 1;
@@ -757,6 +718,7 @@ partial class ChunkMajorTensorSystem : SystemBase
             return t * t * (3f - 2f * t);
         }
     }
+#endregion
 
 // #region Tensor Population Container Struct
 //     public struct TensorPopulationContainer

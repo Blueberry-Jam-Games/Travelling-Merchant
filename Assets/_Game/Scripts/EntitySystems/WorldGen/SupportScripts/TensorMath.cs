@@ -44,6 +44,11 @@ public struct CoordinateSpace2
     public float targetScale;
     public int rim;
 
+    public float Rescale()
+    {
+        return targetScale / sourceScale;
+    }
+
     public CoordinateSpace2(float sourceScale, float targetScale, int rim = 0)
     {
         this.sourceScale = sourceScale;
