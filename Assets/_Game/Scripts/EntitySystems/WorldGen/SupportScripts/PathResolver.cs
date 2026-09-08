@@ -22,12 +22,14 @@ public static class PathResolver
     private static readonly SharedStatic<int> Seed = SharedStatic<int>.GetOrCreate<PathContext, SeedKey>();
 
 #region tuning values
-    private const float PathFrequency = 0.00025f;
-    private const float PathAmplitude = 2000f;
+    private const float PathFrequency = 0.0001f;
+    private const float PathAmplitude = 5000f;
 
-    private const int PathOctaves = 4;
+    private const int PathOctaves = 5;
     private const float PathLacunarity = 1.9f;
     private const float PathGain = 0.35f;
+
+    private const float PathOffset = 200;
 #endregion
 
     public static void SetPathData(int value)
@@ -61,7 +63,18 @@ public static class PathResolver
             amplitude *= PathGain;
         }
 
-        return value / totalAmplitude * PathAmplitude;
+        return value / totalAmplitude * PathAmplitude + PathOffset;
+    }
+
+    [BurstCompile]
+    public static float2 GetDirection(float v)
+    {
+        const float sampleDistance = 4f;
+
+        float u0 = GetUFromV(v - sampleDistance);
+        float u1 = GetUFromV(v + sampleDistance);
+
+        return math.normalizesafe(new float2(sampleDistance * 2f, u1 - u0), new float2(1f, 0f));
     }
 
     /// <summary>
@@ -169,7 +182,7 @@ public static class PathResolver
 
         if(previousInside)
         {
-            entrance = new PathBoundaryPoint(new float2(minV, previousU), new float2(1f, 0f));
+            entrance = new PathBoundaryPoint(new float2(minV, previousU), GetDirection(minV));
             foundEntrance = true;
         }
 
@@ -200,9 +213,7 @@ public static class PathResolver
                 }
 
                 float crossingV = (lowV + highV) * 0.5f;
-                float2 perpendicular = boundaryU == minU ? new float2(0f, 1f) : new float2(0f, -1f);
-
-                entrance = new PathBoundaryPoint(new float2(crossingV, boundaryU), perpendicular);
+                entrance = new PathBoundaryPoint(new float2(crossingV, boundaryU), GetDirection(crossingV));
                 foundEntrance = true;
             }
 
@@ -227,9 +238,7 @@ public static class PathResolver
                 }
 
                 float crossingV = (lowV + highV) * 0.5f;
-                float2 perpendicular = boundaryU == minU ? new float2(0f, -1f) : new float2(0f, 1f);
-
-                exit = new PathBoundaryPoint(new float2(crossingV, boundaryU), perpendicular);
+                exit = new PathBoundaryPoint(new float2(crossingV, boundaryU), GetDirection(crossingV));
                 return true;
             }
 
@@ -240,7 +249,7 @@ public static class PathResolver
 
         if(foundEntrance && previousInside)
         {
-            exit = new PathBoundaryPoint(new float2(maxV, previousU), new float2(1f, 0f));
+            exit = new PathBoundaryPoint(new float2(maxV, previousU), GetDirection(maxV));
             return true;
         }
 

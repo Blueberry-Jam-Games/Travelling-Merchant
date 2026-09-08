@@ -135,27 +135,34 @@ partial class ChunkMajorTensorSystem : SystemBase
                 Path = container.Path,
                 DetailMap = container.DetailMap,
 
-                StepSize = 4f,
+                StepSize = 1f,
 
-                PathHalfWidth = 4f,
+                PathHalfWidth = 6f,
                 PathFeather = 2f,
 
-                ContourFullStrengthDistance = 10f,
+                // Blue channel: terrain-height influence. This is a continuous falloff
+                // from the path centerline so it also provides stable segment ownership
+                // through sharp corners without needing another texture channel.
+                PathHeightBlendWidth = 24f,
+                HeightSeamBlendDistance = 12f,
+
+                TerrainWeight = 6f,
+
                 ContourInfluenceDistance = 80f,
-                ContourStrength = 0.85f,
+                ContourStrength = 0.8f,
 
-                MinorAdvantage = 0.2f,
-                TurnResponsiveness = 0.4f,
+                EdgeAvoidDistance = 50f,
 
-                ExitBiasStart = 0.15f,
-                ExitBiasEnd = 0.65f,
-                EntranceDirectionDistance = 30f,
-                ExitDirectionDistance = 60f,
+                MaxGrade = 0.5f,
 
-                SurfaceMaxGrade = 0.15f,
-                MinorMaxGrade = 0.05f,
-                ExitSurfaceDistance = 40f,
-                MinimumExitAlignment = 0.15f,
+                TerrainInfluenceStart = 0.05f,
+                TerrainInfluenceFull = 0.6f,
+
+                GuideWeight = 0.6f,
+                ExitGuideWeight = 4f,
+                DirectionWeight = 0.5f,
+                ExitGuideDistance = 100f,
+                SeamBlendDistance = 40f,
             };
 
             container.Stage = PathGenerationStage.MainPath;
@@ -173,7 +180,7 @@ partial class ChunkMajorTensorSystem : SystemBase
 
             container.Handle.Complete();
 
-            //SaveDetailMapDebug(container);
+            // SaveDetailMapDebug(container, -64f, 64f);
 
             MajorChunk majorChunk = SystemAPI.GetComponent<MajorChunk>(container.MajorChunk);
             Texture2D detailMap = majorChunk.renderInformation.Value;
@@ -351,474 +358,406 @@ partial class ChunkMajorTensorSystem : SystemBase
         }
     }
 
-#region To Replace
-    [BurstCompile]
-    public struct PathGenerationJob : IJob
+#region Path Generation
+[BurstCompile]
+public struct PathGenerationJob : IJob
+{
+    [ReadOnly] public BlobAssetReference<HeightmapData> Heightmap;
+    [ReadOnly] public NativeList<ContourLine> Contours;
+
+    public float2 ChunkOrigin;
+    public float ChunkSize;
+
+    public CoordinateSpace2 WorldToHeightmap;
+    public CoordinateSpace2 WorldToDetail;
+
+    public PathBoundaryPoint Start;
+    public PathBoundaryPoint End;
+
+    public NativeList<float2> Path;
+    public NativeArray<half4> DetailMap;
+
+    public float StepSize;
+
+    public float PathHalfWidth;
+    public float PathFeather;
+
+    // World-space distance from the path centerline where blue height influence reaches zero.
+    public float PathHeightBlendWidth;
+    public float HeightSeamBlendDistance;
+
+    public float TerrainWeight;
+
+    public float ContourInfluenceDistance;
+    public float ContourStrength;
+
+    public float EdgeAvoidDistance;
+
+    public float MaxGrade;
+
+    public float TerrainInfluenceStart;
+    public float TerrainInfluenceFull;
+    public float GuideWeight;
+    public float ExitGuideWeight;
+    public float DirectionWeight;
+    public float ExitGuideDistance;
+    public float SeamBlendDistance;
+
+    public void Execute()
     {
-        [ReadOnly] public BlobAssetReference<HeightmapData> Heightmap;
-        [ReadOnly] public NativeList<ContourLine> Contours;
+        Path.Clear();
 
-        public float2 ChunkOrigin;
-        public float ChunkSize;
+        float2 currentPosition = Start.position;
+        float2 currentDirection = math.normalizesafe(Start.perpendicular, GetGuideDirection(currentPosition));
 
-        public CoordinateSpace2 WorldToHeightmap;
-        public CoordinateSpace2 WorldToDetail;
+        float currentHeight = SampleHeight(currentPosition);
+        float endHeight = SampleHeight(End.position);
 
-        public PathBoundaryPoint Start;
-        public PathBoundaryPoint End;
+        float minForward = 0.05f;
 
-        public NativeList<float2> Path;
-        public NativeArray<half4> DetailMap;
+        int maxSteps = math.max(16, (int)math.ceil(ChunkSize / (StepSize * minForward)) + 32);
 
-        public float StepSize;
+        Path.Add(currentPosition);
 
-        public float PathHalfWidth;
-        public float PathFeather;
-
-        public float ContourFullStrengthDistance;
-        public float ContourInfluenceDistance;
-        public float ContourStrength;
-
-        public float MinorAdvantage;
-        public float TurnResponsiveness;
-
-        public float ExitBiasStart;
-        public float ExitBiasEnd;
-        public float EntranceDirectionDistance;
-        public float ExitDirectionDistance;
-
-        public float SurfaceMaxGrade;
-        public float MinorMaxGrade;
-        public float ExitSurfaceDistance;
-        public float MinimumExitAlignment;
-
-        public void Execute()
+        for(int i = 0; i < maxSteps; i++)
         {
-            Path.Clear();
+            float distanceToExit = math.distance(currentPosition, End.position);
 
-            float2 start = Start.position;
-            float2 end = End.position;
-
-            float2 startDirection = math.normalizesafe(Start.perpendicular, math.normalizesafe(end - start));
-            float2 endDirection = math.normalizesafe(End.perpendicular, startDirection);
-
-            float2 current = start;
-            float currentHeight = SampleHeight(current);
-
-            float initialDistance = math.max(math.distance(start, end), StepSize);
-            float travelled = 0f;
-
-            bool usingMinor = false;
-
-            int maxSteps = math.max(16, (int)math.ceil(initialDistance / (StepSize * math.max(MinimumExitAlignment, 0.05f))) + 32); // Useless
-
-            Path.Add(current);
-
-            for(int step = 0; step < maxSteps; step++)
+            if(distanceToExit <= StepSize * 1.5f)
             {
-                float2 toExit = end - current;
-                float distanceToExit = math.length(toExit);
-
-                if(distanceToExit <= StepSize * 2f)
-                {
-                    FinishPath(current, currentHeight, end, endDirection);
-                    return;
-                }
-
-                float2 exitDirection = toExit / distanceToExit;
-                float2 currentDirection = PathDirection();
-
-                TensorSample tensor = SampleTensor(current);
-
-                float progress = 1f - math.saturate(distanceToExit / initialDistance);
-                float exitBias = math.lerp(ExitBiasStart, ExitBiasEnd, progress * progress);
-
-                float2 desired = math.normalizesafe(math.lerp(currentDirection, exitDirection, exitBias), exitDirection);
-
-                float entranceInfluence = 1f - math.saturate(travelled / EntranceDirectionDistance);
-                desired = math.normalizesafe(math.lerp(desired, startDirection, entranceInfluence), startDirection);
-
-                float exitInfluence = 1f - math.saturate(distanceToExit / ExitDirectionDistance);
-                desired = math.normalizesafe(math.lerp(desired, endDirection, exitInfluence), endDirection);
-
-                float2 major = MatchDirection(tensor.major, desired);
-                float2 minor = MatchDirection(tensor.minor, desired);
-
-                float majorScore = math.dot(major, desired);
-                float minorScore = math.dot(minor, desired);
-
-                float minorThreshold = usingMinor ? MinorAdvantage * 0.5f : MinorAdvantage;
-                usingMinor = minorScore > majorScore + minorThreshold;
-
-                float2 tensorDirection = usingMinor ? minor : major;
-                float2 direction = math.normalizesafe(math.lerp(currentDirection, tensorDirection, TurnResponsiveness), tensorDirection);
-
-                if(step == 0) direction = startDirection;
-                else direction = EnforceExitProgress(direction, exitDirection);
-
-                float2 next = current + direction * StepSize;
-
-                if(!InsideChunk(next))
-                {
-                    direction = exitDirection;
-                    next = current + direction * StepSize;
-                }
-
-                float distanceMoved = math.distance(current, next);
-                float terrainHeight = SampleHeight(next);
-                float nextHeight = CalculatePathHeight(currentHeight, terrainHeight, distanceMoved, usingMinor, math.distance(next, end));
-
-                PaintSegment(current, next, currentHeight, nextHeight);
-
-                Path.Add(next);
-
-                travelled += distanceMoved;
-                current = next;
-                currentHeight = nextHeight;
+                PaintSegment(currentPosition, End.position, currentHeight, endHeight);
+                Path.Add(End.position);
+                return;
             }
 
-            FinishPath(current, currentHeight, end, endDirection);
-        }
+            float2 guideDirection = GetGuideDirection(currentPosition);
+            TensorSample tensor = SampleTensor(currentPosition, out float terrainInfluence);
 
-        private TensorSample SampleTensor(float2 point)
-        {
-            float2 gradient = SampleGradient(point);
+            float exitInfluence = 1f - math.saturate(distanceToExit / ExitGuideDistance);
+            float guideWeight = math.lerp(GuideWeight, ExitGuideWeight, exitInfluence * exitInfluence);
 
-            float2 minor = math.normalizesafe(gradient, new float2(0f, 1f));
-            float2 major = new float2(-minor.y, minor.x);
+            float2 reference = math.normalizesafe(guideDirection * guideWeight + currentDirection * DirectionWeight, guideDirection);
+            float2 direction = reference;
 
-            int closestContour = -1;
-            float closestDistance = ContourInfluenceDistance;
+            float seamDistance = math.min(math.distance(currentPosition, Start.position), distanceToExit);
+            float seamInfluence = math.saturate(seamDistance / SeamBlendDistance);
 
-            for(int i = 0; i < Contours.Length; i++)
+            if(math.lengthsq(tensor.major) > 0.000001f)
             {
-                LineProjection projection = TensorMath.Project(point, Contours[i].line);
+                float minorWeight = math.lerp(1f, 0.2f, terrainInfluence);
 
-                if(projection.distance >= closestDistance) continue;
+                float2 terrainDirection = tensor.major * math.dot(reference, tensor.major);
+                terrainDirection += tensor.minor * math.dot(reference, tensor.minor) * minorWeight;
+                terrainDirection = math.normalizesafe(terrainDirection, reference);
 
-                closestDistance = projection.distance;
-                closestContour = i;
+                float terrainStrength = math.saturate(terrainInfluence * TerrainWeight * seamInfluence);
+                direction = math.normalizesafe(math.lerp(reference, terrainDirection, terrainStrength), reference);
             }
 
-            if(closestContour < 0)
+            direction += GetEdgeAvoidance(currentPosition) * 2f;
+            direction = math.normalizesafe(direction, reference);
+            direction = EnforceForward(direction, minForward);
+
+            float2 nextPosition = currentPosition + direction * StepSize;
+
+            if(!InsideChunk(nextPosition))
             {
-                return new TensorSample
-                {
-                    major = major,
-                    minor = minor
-                };
+                direction = EnforceForward(guideDirection, minForward);
+                nextPosition = currentPosition + direction * StepSize;
             }
 
-            LineProjection contour = TensorMath.ProjectSmooth(point, Contours, closestContour);
+            float distanceMoved = math.distance(currentPosition, nextPosition);
+            float terrainHeight = SampleHeight(nextPosition);
+            float maxHeightChange = distanceMoved * MaxGrade;
+            float nextHeight = math.clamp(terrainHeight, currentHeight - maxHeightChange, currentHeight + maxHeightChange);
 
-            float influence = 1f - math.smoothstep(ContourFullStrengthDistance, ContourInfluenceDistance, contour.distance);
-            influence = math.saturate(influence * ContourStrength);
+            PaintSegment(currentPosition, nextPosition, currentHeight, nextHeight);
+            Path.Add(nextPosition);
 
-            float2 contourMajor = MatchDirection(contour.tangent, major);
-            major = math.normalizesafe(math.lerp(major, contourMajor, influence), major);
-
-            float2 contourMinor = new float2(-major.y, major.x);
-            minor = MatchDirection(contourMinor, minor);
-
-            return new TensorSample
-            {
-                major = major,
-                minor = minor
-            };
-        }
-
-        private float2 EnforceExitProgress(float2 direction, float2 exitDirection)
-        {
-            float alignment = math.dot(direction, exitDirection);
-
-            if(alignment >= MinimumExitAlignment) return direction;
-
-            float2 perpendicular = new float2(-exitDirection.y, exitDirection.x);
-            float side = math.dot(direction, perpendicular) >= 0f ? 1f : -1f;
-            float lateral = math.sqrt(math.max(0f, 1f - MinimumExitAlignment * MinimumExitAlignment));
-
-            return exitDirection * MinimumExitAlignment + perpendicular * lateral * side;
-        }
-
-        private float SampleHeight(float2 worldPosition)
-        {
-            float2 position = WorldToHeightmap.Convert(worldPosition - ChunkOrigin);
-
-            int resolution = Heightmap.Value.resolution - 3;
-
-            int x = math.clamp((int)math.floor(position.x), 0, resolution - 1);
-            int y = math.clamp((int)math.floor(position.y), 0, resolution - 1);
-
-            float tx = position.x - x;
-            float ty = position.y - y;
-
-            float row0 = Cubic(Heightmap.Value.GetHeight(x - 1, y - 1), Heightmap.Value.GetHeight(x, y - 1), Heightmap.Value.GetHeight(x + 1, y - 1), Heightmap.Value.GetHeight(x + 2, y - 1), tx);
-            float row1 = Cubic(Heightmap.Value.GetHeight(x - 1, y), Heightmap.Value.GetHeight(x, y), Heightmap.Value.GetHeight(x + 1, y), Heightmap.Value.GetHeight(x + 2, y), tx);
-            float row2 = Cubic(Heightmap.Value.GetHeight(x - 1, y + 1), Heightmap.Value.GetHeight(x, y + 1), Heightmap.Value.GetHeight(x + 1, y + 1), Heightmap.Value.GetHeight(x + 2, y + 1), tx);
-            float row3 = Cubic(Heightmap.Value.GetHeight(x - 1, y + 2), Heightmap.Value.GetHeight(x, y + 2), Heightmap.Value.GetHeight(x + 1, y + 2), Heightmap.Value.GetHeight(x + 2, y + 2), tx);
-
-            return Cubic(row0, row1, row2, row3, ty);
-        }
-
-        private float2 SampleGradient(float2 worldPosition)
-        {
-            float2 position = WorldToHeightmap.Convert(worldPosition - ChunkOrigin);
-
-            int resolution = Heightmap.Value.resolution - 3;
-
-            int x = math.clamp((int)math.floor(position.x), 0, resolution - 1);
-            int y = math.clamp((int)math.floor(position.y), 0, resolution - 1);
-
-            float tx = position.x - x;
-            float ty = position.y - y;
-
-            float2 row0 = Cubic(Heightmap.Value.GetGradient(x - 1, y - 1), Heightmap.Value.GetGradient(x, y - 1), Heightmap.Value.GetGradient(x + 1, y - 1), Heightmap.Value.GetGradient(x + 2, y - 1), tx);
-            float2 row1 = Cubic(Heightmap.Value.GetGradient(x - 1, y), Heightmap.Value.GetGradient(x, y), Heightmap.Value.GetGradient(x + 1, y), Heightmap.Value.GetGradient(x + 2, y), tx);
-            float2 row2 = Cubic(Heightmap.Value.GetGradient(x - 1, y + 1), Heightmap.Value.GetGradient(x, y + 1), Heightmap.Value.GetGradient(x + 1, y + 1), Heightmap.Value.GetGradient(x + 2, y + 1), tx);
-            float2 row3 = Cubic(Heightmap.Value.GetGradient(x - 1, y + 2), Heightmap.Value.GetGradient(x, y + 2), Heightmap.Value.GetGradient(x + 1, y + 2), Heightmap.Value.GetGradient(x + 2, y + 2), tx);
-
-            return Cubic(row0, row1, row2, row3, ty);
-        }
-
-        private float CalculatePathHeight(float previousHeight, float terrainHeight, float distance, bool usingMinor, float distanceToExit)
-        {
-            float maxGrade = usingMinor ? MinorMaxGrade : SurfaceMaxGrade;
-            float maxChange = distance * maxGrade;
-
-            float height = math.clamp(terrainHeight, previousHeight - maxChange, previousHeight + maxChange);
-
-            if(ExitSurfaceDistance > 0f)
-            {
-                float exitInfluence = 1f - math.saturate(distanceToExit / ExitSurfaceDistance);
-                height = math.lerp(height, terrainHeight, exitInfluence);
-            }
-
-            return height;
-        }
-
-        private void FinishPath(float2 current, float currentHeight, float2 end, float2 endDirection)
-        {
-            float distance = math.distance(current, end);
-
-            if(distance <= 0.001f) return;
-
-            float guideDistance = math.min(StepSize, distance * 0.5f);
-            float2 guide = end - endDirection * guideDistance;
-
-            if(InsideChunk(guide) && math.distance(current, guide) > 0.001f)
-            {
-                float terrainHeight = SampleHeight(guide);
-                float guideHeight = CalculatePathHeight(currentHeight, terrainHeight, math.distance(current, guide), false, guideDistance);
-
-                PaintSegment(current, guide, currentHeight, guideHeight);
-                Path.Add(guide);
-
-                current = guide;
-                currentHeight = guideHeight;
-            }
-
-            float endHeight = SampleHeight(end);
-
-            PaintSegment(current, end, currentHeight, endHeight);
-
-            if(math.distance(Path[Path.Length - 1], end) > 0.001f) Path.Add(end);
-        }
-
-        private void PaintSegment(float2 worldStart, float2 worldEnd, float startHeight, float endHeight)
-        {
-            float2 start = WorldToDetail.Convert(worldStart - ChunkOrigin);
-            float2 end = WorldToDetail.Convert(worldEnd - ChunkOrigin);
-
-            float halfWidth = PathHalfWidth * WorldToDetail.Rescale();
-            float feather = PathFeather * WorldToDetail.Rescale();
-            float outerWidth = halfWidth + feather;
-
-            int resolution = (int)WorldToDetail.targetScale + 1;
-
-            int minX = math.clamp((int)math.floor(math.min(start.x, end.x) - outerWidth), 0, resolution - 1);
-            int maxX = math.clamp((int)math.ceil(math.max(start.x, end.x) + outerWidth), 0, resolution - 1);
-            int minY = math.clamp((int)math.floor(math.min(start.y, end.y) - outerWidth), 0, resolution - 1);
-            int maxY = math.clamp((int)math.ceil(math.max(start.y, end.y) + outerWidth), 0, resolution - 1);
-
-            Line2 segment = new Line2(start, end);
-
-            for(int y = minY; y <= maxY; y++)
-            {
-                for(int x = minX; x <= maxX; x++)
-                {
-                    float2 pixel = new float2(x, y);
-
-                    LineProjection projection = TensorMath.Project(pixel, segment);
-
-                    if(projection.distance > outerWidth) continue;
-
-                    float strength = 1f;
-
-                    if(projection.distance > halfWidth && feather > 0f)
-                    {
-                        float t = math.saturate((projection.distance - halfWidth) / feather);
-                        strength = 1f - SmoothStep(t);
-                    }
-
-                    float pathHeight = math.lerp(startHeight, endHeight, projection.t);
-
-                    int index = x + y * resolution;
-
-                    half4 pixelData = DetailMap[index];
-                    float existingStrength = (float)pixelData.x;
-
-                    if(strength >= existingStrength)
-                    {
-                        pixelData.x = (half)strength;
-                        pixelData.w = (half)pathHeight;
-
-                        DetailMap[index] = pixelData;
-                    }
-                }
-            }
-        }
-
-        private bool InsideChunk(float2 point)
-        {
-            float2 local = point - ChunkOrigin;
-
-            return local.x >= 0f && local.y >= 0f && local.x <= ChunkSize && local.y <= ChunkSize;
-        }
-
-        private float2 PathDirection()
-        {
-            if(Path.Length < 2) return math.normalizesafe(Start.perpendicular);
-
-            return math.normalizesafe(Path[Path.Length - 1] - Path[Path.Length - 2], Start.perpendicular);
-        }
-
-        private static float2 MatchDirection(float2 direction, float2 reference)
-        {
-            return math.dot(direction, reference) < 0f ? -direction : direction;
-        }
-
-        private static float Cubic(float p0, float p1, float p2, float p3, float t)
-        {
-            float t2 = t * t;
-            float t3 = t2 * t;
-
-            return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-        }
-
-        private static float2 Cubic(float2 p0, float2 p1, float2 p2, float2 p3, float t)
-        {
-            float t2 = t * t;
-            float t3 = t2 * t;
-
-            return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-        }
-
-        private static float SmoothStep(float t)
-        {
-            return t * t * (3f - 2f * t);
+            currentPosition = nextPosition;
+            currentDirection = direction;
+            currentHeight = nextHeight;
         }
     }
+
+    private float2 GetGuideDirection(float2 point)
+    {
+        float lookAhead = StepSize * 8f;
+        float targetV = math.min(point.x + lookAhead, End.position.x);
+
+        if(targetV <= point.x + 0.0001f) return math.normalizesafe(End.position - point, End.perpendicular);
+
+        float targetU = targetV >= End.position.x - 0.0001f ? End.position.y : PathResolver.GetUFromV(targetV);
+        float2 target = new float2(targetV, targetU);
+
+        return math.normalizesafe(target - point, Start.perpendicular);
+    }
+
+    private TensorSample SampleTensor(float2 point, out float influence)
+    {
+        float2 gradient = SampleGradient(point);
+        float gradientMagnitude = math.length(gradient);
+
+        influence = math.smoothstep(TerrainInfluenceStart, TerrainInfluenceFull, gradientMagnitude);
+
+        float2 minor = gradientMagnitude > 0.000001f ? gradient / gradientMagnitude : float2.zero;
+        float2 major = gradientMagnitude > 0.000001f ? new float2(-minor.y, minor.x) : float2.zero;
+
+        int closestContour = -1;
+        float closestDistance = ContourInfluenceDistance;
+
+        for(int i = 0; i < Contours.Length; i++)
+        {
+            float distance = TensorMath.Distance(point, Contours[i].line);
+
+            if(distance >= closestDistance) continue;
+
+            closestDistance = distance;
+            closestContour = i;
+        }
+
+        if(closestContour >= 0)
+        {
+            LineProjection contour = TensorMath.ProjectSmooth(point, Contours, closestContour);
+
+            float contourInfluence = 1f - math.smoothstep(0f, ContourInfluenceDistance, contour.distance);
+            contourInfluence = math.saturate(contourInfluence * ContourStrength);
+
+            if(math.lengthsq(major) > 0.000001f)
+            {
+                float2 contourMajor = MatchDirection(contour.tangent, major);
+                major = math.normalizesafe(math.lerp(major, contourMajor, contourInfluence), contourMajor);
+            }
+            else
+            {
+                major = contour.tangent;
+            }
+
+            minor = new float2(-major.y, major.x);
+
+            influence = math.max(influence, contourInfluence);
+        }
+
+        return new TensorSample { major = major, minor = minor };
+    }
+
+    private float2 GetEdgeAvoidance(float2 point)
+    {
+        float2 local = point - ChunkOrigin;
+        float2 force = float2.zero;
+
+        if(local.x < EdgeAvoidDistance) force.x += 1f - local.x / EdgeAvoidDistance;
+        if(local.y < EdgeAvoidDistance) force.y += 1f - local.y / EdgeAvoidDistance;
+        if(ChunkSize - local.x < EdgeAvoidDistance) force.x -= 1f - (ChunkSize - local.x) / EdgeAvoidDistance;
+        if(ChunkSize - local.y < EdgeAvoidDistance) force.y -= 1f - (ChunkSize - local.y) / EdgeAvoidDistance;
+
+        float startMask = math.saturate(math.distance(point, Start.position) / EdgeAvoidDistance);
+        float endMask = math.saturate(math.distance(point, End.position) / EdgeAvoidDistance);
+
+        return force * startMask * endMask;
+    }
+
+    private float2 EnforceForward(float2 direction, float minimum)
+    {
+        if(direction.x >= minimum) return direction;
+
+        float maxY = math.sqrt(math.max(0f, 1f - minimum * minimum));
+        return new float2(minimum, math.clamp(direction.y, -maxY, maxY));
+    }
+
+    private float SampleHeight(float2 worldPosition)
+    {
+        float2 position = WorldToHeightmap.Convert(worldPosition - ChunkOrigin);
+
+        int resolution = Heightmap.Value.resolution - 3;
+
+        int x = math.clamp((int)math.floor(position.x), 0, resolution - 1);
+        int y = math.clamp((int)math.floor(position.y), 0, resolution - 1);
+
+        float tx = position.x - x;
+        float ty = position.y - y;
+
+        float row0 = Cubic(Heightmap.Value.GetHeight(x - 1, y - 1), Heightmap.Value.GetHeight(x, y - 1), Heightmap.Value.GetHeight(x + 1, y - 1), Heightmap.Value.GetHeight(x + 2, y - 1), tx);
+        float row1 = Cubic(Heightmap.Value.GetHeight(x - 1, y), Heightmap.Value.GetHeight(x, y), Heightmap.Value.GetHeight(x + 1, y), Heightmap.Value.GetHeight(x + 2, y), tx);
+        float row2 = Cubic(Heightmap.Value.GetHeight(x - 1, y + 1), Heightmap.Value.GetHeight(x, y + 1), Heightmap.Value.GetHeight(x + 1, y + 1), Heightmap.Value.GetHeight(x + 2, y + 1), tx);
+        float row3 = Cubic(Heightmap.Value.GetHeight(x - 1, y + 2), Heightmap.Value.GetHeight(x, y + 2), Heightmap.Value.GetHeight(x + 1, y + 2), Heightmap.Value.GetHeight(x + 2, y + 2), tx);
+
+        return Cubic(row0, row1, row2, row3, ty);
+    }
+
+    private float2 SampleGradient(float2 worldPosition)
+    {
+        float2 position = WorldToHeightmap.Convert(worldPosition - ChunkOrigin);
+
+        int resolution = Heightmap.Value.resolution - 3;
+
+        int x = math.clamp((int)math.floor(position.x), 0, resolution - 1);
+        int y = math.clamp((int)math.floor(position.y), 0, resolution - 1);
+
+        float tx = position.x - x;
+        float ty = position.y - y;
+
+        float2 row0 = Cubic(Heightmap.Value.GetGradient(x - 1, y - 1), Heightmap.Value.GetGradient(x, y - 1), Heightmap.Value.GetGradient(x + 1, y - 1), Heightmap.Value.GetGradient(x + 2, y - 1), tx);
+        float2 row1 = Cubic(Heightmap.Value.GetGradient(x - 1, y), Heightmap.Value.GetGradient(x, y), Heightmap.Value.GetGradient(x + 1, y), Heightmap.Value.GetGradient(x + 2, y), tx);
+        float2 row2 = Cubic(Heightmap.Value.GetGradient(x - 1, y + 1), Heightmap.Value.GetGradient(x, y + 1), Heightmap.Value.GetGradient(x + 1, y + 1), Heightmap.Value.GetGradient(x + 2, y + 1), tx);
+        float2 row3 = Cubic(Heightmap.Value.GetGradient(x - 1, y + 2), Heightmap.Value.GetGradient(x, y + 2), Heightmap.Value.GetGradient(x + 1, y + 2), Heightmap.Value.GetGradient(x + 2, y + 2), tx);
+
+        return Cubic(row0, row1, row2, row3, ty);
+    }
+
+    private void PaintSegment(float2 worldStart, float2 worldEnd, float startHeight, float endHeight)
+    {
+        float2 start = WorldToDetail.Convert(worldStart - ChunkOrigin);
+        float2 end = WorldToDetail.Convert(worldEnd - ChunkOrigin);
+
+        float scale = WorldToDetail.targetScale / WorldToDetail.sourceScale;
+
+        // Red channel controls only the visible path.
+        float visualHalfWidth = PathHalfWidth * scale;
+        float visualFeather = PathFeather * scale;
+        float visualOuterWidth = visualHalfWidth + visualFeather;
+
+        // Blue channel controls terrain-height blending. Unlike red, this deliberately
+        // has no flat-strength core: strength falls continuously with distance from
+        // the centerline. That means the closest segment wins alpha at sharp corners.
+        float heightOuterWidth = PathHeightBlendWidth * scale;
+
+        float outerWidth = math.max(visualOuterWidth, heightOuterWidth);
+
+        int resolution = (int)WorldToDetail.targetScale + 1;
+
+        int minX = math.clamp((int)math.floor(math.min(start.x, end.x) - outerWidth), 0, resolution - 1);
+        int maxX = math.clamp((int)math.ceil(math.max(start.x, end.x) + outerWidth), 0, resolution - 1);
+        int minY = math.clamp((int)math.floor(math.min(start.y, end.y) - outerWidth), 0, resolution - 1);
+        int maxY = math.clamp((int)math.ceil(math.max(start.y, end.y) + outerWidth), 0, resolution - 1);
+
+        Line2 segment = new Line2(start, end);
+
+        for(int y = minY; y <= maxY; y++)
+        {
+            for(int x = minX; x <= maxX; x++)
+            {
+                LineProjection projection = TensorMath.Project(new float2(x, y), segment);
+
+                if(projection.distance > outerWidth) continue;
+
+                float visualStrength = GetVisualStrength(projection.distance, visualHalfWidth, visualFeather);
+                float heightStrength = GetHeightStrength(projection.distance, heightOuterWidth);
+
+                float seamStrength = GetHeightSeamStrength(x, y, resolution, scale);
+                heightStrength *= seamStrength;
+
+                if(visualStrength <= 0f && heightStrength <= 0f) continue;
+
+                float pathHeight = math.lerp(startHeight, endHeight, projection.t);
+
+                int index = x + y * resolution;
+                half4 pixel = DetailMap[index];
+                bool changed = false;
+
+                // Red is independent visual coverage.
+                if(visualStrength > (float)pixel.x)
+                {
+                    pixel.x = (half)visualStrength;
+                    changed = true;
+                }
+
+                // Blue is both the terrain blend strength and the ownership metric for alpha.
+                // Because it continuously decreases from the centerline, the geometrically
+                // closest path segment normally has the strongest blue value.
+                float existingHeightStrength = (float)pixel.z;
+                const float tieEpsilon = 0.001f;
+
+                if(heightStrength > existingHeightStrength + tieEpsilon)
+                {
+                    pixel.z = (half)heightStrength;
+                    pixel.w = (half)pathHeight;
+                    changed = true;
+                }
+                else if(heightStrength > 0f && math.abs(heightStrength - existingHeightStrength) <= tieEpsilon)
+                {
+                    // On the exact bisector of a sharp corner, blend the two candidate
+                    // heights instead of allowing paint order to create a hard seam.
+                    pixel.z = (half)math.max(existingHeightStrength, heightStrength);
+                    pixel.w = (half)math.lerp((float)pixel.w, pathHeight, 0.5f);
+                    changed = true;
+                }
+
+                if(changed) DetailMap[index] = pixel;
+            }
+        }
+    }
+
+    private float GetHeightSeamStrength(int x, int y, int resolution, float scale)
+    {
+        float edgeDistance = math.min(x, y);
+        edgeDistance = math.min(edgeDistance, resolution - 1 - x);
+        edgeDistance = math.min(edgeDistance, resolution - 1 - y);
+
+        float edgeDistanceWorld = edgeDistance / scale;
+        float t = math.saturate(edgeDistanceWorld / HeightSeamBlendDistance);
+
+        return SmoothStep(t);
+    }
+
+    private static float GetVisualStrength(float distance, float halfWidth, float feather)
+    {
+        if(distance <= halfWidth) return 1f;
+        if(feather <= 0f) return 0f;
+
+        float t = math.saturate((distance - halfWidth) / feather);
+        return 1f - SmoothStep(t);
+    }
+
+    private static float GetHeightStrength(float distance, float outerWidth)
+    {
+        if(outerWidth <= 0f || distance >= outerWidth) return 0f;
+
+        float t = math.saturate(distance / outerWidth);
+        return 1f - SmoothStep(t);
+    }
+
+    private bool InsideChunk(float2 point)
+    {
+        float2 local = point - ChunkOrigin;
+        return local.x >= 0f && local.y >= 0f && local.x <= ChunkSize && local.y <= ChunkSize;
+    }
+
+    private static float2 MatchDirection(float2 direction, float2 reference)
+    {
+        return math.dot(direction, reference) < 0f ? -direction : direction;
+    }
+
+    private static float Cubic(float p0, float p1, float p2, float p3, float t)
+    {
+        float t2 = t * t;
+        float t3 = t2 * t;
+
+        return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+    }
+
+    private static float2 Cubic(float2 p0, float2 p1, float2 p2, float2 p3, float t)
+    {
+        float t2 = t * t;
+        float t3 = t2 * t;
+
+        return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+    }
+
+    private static float SmoothStep(float t)
+    {
+        return t * t * (3f - 2f * t);
+    }
+}
 #endregion
 
-// #region Tensor Population Container Struct
-//     public struct TensorPopulationContainer
-//     {
-//         public Entity MajorChunk;
-
-//         public BlobAssetReference<HeightmapData> heightmapData;
-
-//         public bool ContainsCity;
-//         public float3 PathEntrancePoint;
-//         public float3 PathExitPoint;
-
-//         public int TensorFieldResolution;
-//         public int DetailMapResolution;
-//         public NativeArray<float4> TensorField;
-//         public NativeList<float2> Path;
-
-//         public NativeArray<Color32> DetailMap;
-//         public JobHandle Handle;
-//     }
-// #endregion
-
-//     struct TensorGradientFillJob : IJob
-//     {
-//         public int TensorFieldResolution;
-//         public NativeArray<float4> TensorField;
-//         public BlobAssetReference<HeightmapData> Heightmap;
-//         public int GradientResolution;
-//         public float TensorToGradientScale;
-//         public TensorGradientFillJob(TensorPopulationContainer container)
-//         {
-//             TensorFieldResolution = container.TensorFieldResolution;
-//             TensorField = container.TensorField;
-//             Heightmap = container.heightmapData;
-//             GradientResolution = container.heightmapData.Value.resolution - 2;
-//             TensorToGradientScale = (GradientResolution - 1f) / (TensorFieldResolution - 1f);
-//         }
-
-//         public void Execute()
-//         {
-//             for(int index = 0; index < TensorFieldResolution * TensorFieldResolution; index++)
-//             {
-//                 int tensorX = index % TensorFieldResolution;
-//                 int tensorY = index / TensorFieldResolution;
-
-//                 float gradientX = tensorX * TensorToGradientScale;
-//                 float gradientY = tensorY * TensorToGradientScale;
-
-//                 int x = math.min((int)math.floor(gradientX), GradientResolution - 2);
-//                 int y = math.min((int)math.floor(gradientY), GradientResolution - 2);
-
-//                 float tx = gradientX - x;
-//                 float ty = gradientY - y;
-
-//                 float2 row0 = Cubic(Heightmap.Value.GetGradient(x - 1, y - 1), Heightmap.Value.GetGradient(x, y - 1), Heightmap.Value.GetGradient(x + 1, y - 1), Heightmap.Value.GetGradient(x + 2, y - 1), tx);
-//                 float2 row1 = Cubic(Heightmap.Value.GetGradient(x - 1, y), Heightmap.Value.GetGradient(x, y), Heightmap.Value.GetGradient(x + 1, y), Heightmap.Value.GetGradient(x + 2, y), tx);
-//                 float2 row2 = Cubic(Heightmap.Value.GetGradient(x - 1, y + 1), Heightmap.Value.GetGradient(x, y + 1), Heightmap.Value.GetGradient(x + 1, y + 1), Heightmap.Value.GetGradient(x + 2, y + 1), tx);
-//                 float2 row3 = Cubic(Heightmap.Value.GetGradient(x - 1, y + 2), Heightmap.Value.GetGradient(x, y + 2), Heightmap.Value.GetGradient(x + 1, y + 2), Heightmap.Value.GetGradient(x + 2, y + 2), tx);
-
-//                 float2 gradient = Cubic(row0, row1, row2, row3, ty);
-
-//                 float lengthSq = math.lengthsq(gradient);
-
-//                 float2 minor = lengthSq > 0.000001f ? gradient * math.rsqrt(lengthSq) : new float2(0f, 1f);
-//                 float2 major = new float2(-minor.y, minor.x);
-
-//                 TensorField[index] = new float4(major.x, major.y, minor.x, minor.y);
-//             }
-//         }
-
-//         private static float2 Cubic(float2 p0, float2 p1, float2 p2, float2 p3, float t)
-//         {
-//             float t2 = t * t;
-//             float t3 = t2 * t;
-//             return 0.5f * ((2f * p1) + (-p0 + p2) * t + (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 + (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
-//         }
-//     }
-
     #region Debug Only
-    private void SaveDetailMapDebug(PathGenerationContainer container)
+    private void SaveDetailMapDebug(PathGenerationContainer container, float heightStart, float heightEnd)
     {
         int resolution = (int)container.worldToDetail.targetScale + 1;
 
-        float minHeight = float.MaxValue;
-        float maxHeight = float.MinValue;
-
-        for(int i = 0; i < container.DetailMap.Length; i++)
-        {
-            half4 pixel = container.DetailMap[i];
-
-            if((float)pixel.x <= 0f) continue;
-
-            float height = (float)pixel.w;
-
-            minHeight = math.min(minHeight, height);
-            maxHeight = math.max(maxHeight, height);
-        }
-
-        bool hasPath = minHeight <= maxHeight;
-        float heightRange = hasPath ? maxHeight - minHeight : 0f;
+        float heightRange = heightEnd - heightStart;
+        if(math.abs(heightRange) < 0.0001f) heightRange = 1f;
 
         NativeArray<Color32> pixels = new NativeArray<Color32>(container.DetailMap.Length, Allocator.Temp);
 
@@ -827,18 +766,19 @@ partial class ChunkMajorTensorSystem : SystemBase
             half4 source = container.DetailMap[i];
 
             float red = math.saturate((float)source.x);
-            float green = math.saturate((float)source.y);
             float blue = math.saturate((float)source.z);
 
-            float alpha = 0f;
+            float height = (float)source.w;
+            float heightVisual = math.saturate((height - heightStart) / heightRange);
 
-            if(red > 0f && hasPath)
-            {
-                if(heightRange > 0.0001f) alpha = math.saturate(((float)source.w - minHeight) / heightRange);
-                else alpha = 1f;
-            }
+            if(red <= 0f) heightVisual = 0f;
 
-            pixels[i] = new Color32((byte)math.round(red * 255f), (byte)math.round(green * 255f), (byte)math.round(blue * 255f), (byte)math.round(alpha * 255f));
+            pixels[i] = new Color32(
+                (byte)math.round(red * 255f),
+                (byte)math.round(heightVisual * 255f),
+                (byte)math.round(blue * 255f),
+                255
+            );
         }
 
         Texture2D outputImage = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false, true);

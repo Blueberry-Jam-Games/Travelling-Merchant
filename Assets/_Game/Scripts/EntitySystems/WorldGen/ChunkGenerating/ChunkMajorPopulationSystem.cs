@@ -160,7 +160,7 @@ partial class ChunkMajorPopulationSystem : SystemBase
 //                 }
 //             }
 
-//             texture.Apply(false, false);
+            texture.Apply(false, false);
 //             // majorChunk.ValueRO.renderInformation.Value.GetPixelData<Color32>(0);
 // #endregion
             SystemAPI.SetComponentEnabled<ChunkConfigured>(entity, true); // TODO Move

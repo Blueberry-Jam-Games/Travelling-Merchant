@@ -52,8 +52,24 @@ float isoLevel;
 float3 position;
 float spacing;
 
-// TODO Reimpliment
-// StructuredBuffer<float4> offsets;
+// Terrain Information
+Texture2D<half4> detailMap;
+float detailMapResolution;
+float majorChunkSize;
+float2 majorChunkOrigin;
+
+inline half4 GetDetailMap(float2 worldPos)
+{
+    float2 majorLocalPos = worldPos - majorChunkOrigin;
+
+    float pixelsPerWorldUnit = (detailMapResolution - 1.0) / majorChunkSize;
+    float2 texelPos = majorLocalPos * pixelsPerWorldUnit;
+
+    int2 coord = (int2)round(texelPos);
+    coord = clamp(coord, 0, (int)detailMapResolution - 1);
+
+    return detailMap.Load(int3(coord, 0));
+}
 
 float4 interpolateVerts(float4 v1, float4 v2) {
     float t = (isoLevel - v1.w) / (v2.w - v1.w);
@@ -138,7 +154,13 @@ void Density (int3 id : SV_DispatchThreadID)
 
     float terrainHeight = GetTerrainHeight(pos.xz, seed);
 
-    float density = terrainHeight - pos.y;
+    half4 detail = GetDetailMap(pos.xz);
+    float pathStrength = saturate(detail.b);
+    float pathHeight = detail.a;
+
+    float finalHeight = lerp(terrainHeight, pathHeight, pathStrength);
+
+    float density = finalHeight - pos.y;
 
     int index = indexFromCoord(id.x,id.y,id.z);
 

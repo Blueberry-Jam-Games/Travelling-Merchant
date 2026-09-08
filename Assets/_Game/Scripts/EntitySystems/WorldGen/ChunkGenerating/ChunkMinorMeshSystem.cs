@@ -227,7 +227,11 @@ partial class ChunkMinorMeshSystem : SystemBase
 
                 freeContainer.Prepare(entity);
 
-                freeContainer.AddCommands(ref commandBuffer, ref meshGenerator, densityKernal, marchKernal, ref chunkWorld, transform.ValueRO.Position);
+                Entity majorChunk = minorChunk.ValueRO.majorChunk;
+                SystemAPI.TryGetComponent(majorChunk, out MajorChunk majorChunkComponent);
+                SystemAPI.TryGetComponent(majorChunk, out LocalTransform majorChunkTransform);
+
+                freeContainer.AddCommands(ref commandBuffer, ref meshGenerator, densityKernal, marchKernal, ref chunkWorld, transform.ValueRO.Position, ref majorChunkComponent, majorChunkTransform.Position.xz);
 
                 SystemAPI.SetComponentEnabled<ChunkGeneratingMesh>(entity, true);
 
@@ -340,7 +344,7 @@ public class ComputeContainer
         generationStep = MinorChunkProgress.CLEARED;
     }
 
-    public void AddCommands(ref CommandBuffer generator, ref ComputeShader computeShader, int densityKernel, int marchKernel, ref ChunkWorldSingleton chunkWorld, float3 position)
+    public void AddCommands(ref CommandBuffer generator, ref ComputeShader computeShader, int densityKernel, int marchKernel, ref ChunkWorldSingleton chunkWorld, float3 position, ref MajorChunk majorchunk, float2 majorChunkPosition)
     {
         float spacing = (float)chunkWorld.minorChunkSize / (numPointsPerAxis - 1);
 
@@ -352,6 +356,10 @@ public class ComputeContainer
         generator.SetComputeVectorParam(computeShader, "position", new Vector4(position.x, position.y, position.z));
         generator.SetComputeIntParam(computeShader, "seed", chunkWorld.seed);
         generator.SetComputeFloatParam(computeShader, "spacing", spacing);
+        generator.SetComputeFloatParam(computeShader, "detailMapResolution", chunkWorld.detailMapResolution);
+        generator.SetComputeFloatParam(computeShader, "majorChunkSize", chunkWorld.majorChunkSize);
+        generator.SetComputeVectorParam(computeShader, "majorChunkOrigin", new Vector4(majorChunkPosition.x, majorChunkPosition.y, 0, 0));
+        generator.SetComputeTextureParam(computeShader, densityKernel, "detailMap", majorchunk.renderInformation.Value);
 
         generator.DispatchCompute(computeShader, densityKernel, numDensityThreadsPerAxis, numDensityThreadsPerAxis, numDensityThreadsPerAxis);
 
